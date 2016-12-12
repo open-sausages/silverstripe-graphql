@@ -67,7 +67,7 @@ class FieldCreator extends Object
             $attributes['type'] = $type;
         }
 
-        $resolver = $this->getResolver();
+        $resolver = $this->getResolver();        
         if (isset($resolver)) {
             $attributes['resolve'] = $resolver;
         }
