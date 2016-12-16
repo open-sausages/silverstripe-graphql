@@ -212,6 +212,16 @@ class Manager
     }
 
     /**
+     * @param  string  $name
+     * 
+     * @return boolean
+     */
+    public function hasType($name)
+    {
+    	return isset($this->types[$name]);
+    }
+
+    /**
      * @param array  $query
      * @param string $name Identifier for this query (unique in schema)
      */
