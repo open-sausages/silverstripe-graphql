@@ -2,12 +2,9 @@
 
 namespace SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD;
 
-use SilverStripe\GraphQL\Scaffolding\Scaffolders\MutationScaffolder;
 use SilverStripe\GraphQL\Scaffolding\Traits\DataObjectTypeTrait;
-use SilverStripe\GraphQL\Scaffolding\Traits\CrudTrait;
 use SilverStripe\ORM\DataList;
 use GraphQL\Type\Definition\Type;
-use SilverStripe\GraphQL\Scaffolding\Interfaces\CRUDInterface;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
 use Exception;
 use SilverStripe\ORM\DB;
@@ -15,17 +12,24 @@ use SilverStripe\ORM\DB;
 /**
  * A generic delete operation.
  */
-class Delete extends MutationScaffolder implements CRUDInterface
+class DeleteList extends Delete
 {
     use DataObjectTypeTrait;
-    use CrudTrait;
+
+    /**
+     * @return string
+     */
+    public function getIdentifier()
+    {
+        return SchemaScaffolder::DELETE_LIST;
+    }
 
     /**
      * @return string
      */
     protected function createName()
     {
-		return 'delete'.ucfirst($this->typeName());    	
+		return 'delete'.ucfirst($this->typeName()).'List';    	
     }
 
     /**
@@ -35,9 +39,10 @@ class Delete extends MutationScaffolder implements CRUDInterface
     {
     	return function ($object, array $args, $context, $info) {
             DB::get_conn()->withTransaction(function () use ($args, $context) {
-                $obj = DataList::create($this->dataObjectClass)
-                    ->byID($args['ID']);
-                if($obj) {
+                $results = DataList::create($this->dataObjectClass)
+                    ->byIDs($args['IDs']);
+
+                foreach ($results as $obj) {
                     if ($obj->canDelete($context['currentUser'])) {
                         $obj->delete();
                     } else {
@@ -47,23 +52,9 @@ class Delete extends MutationScaffolder implements CRUDInterface
                             $obj->ID
                         ));
                     }
-                } else {
-                    throw new Exception(sprintf(
-                        '%s with ID %s not found',
-                        $this->dataObjectClass,
-                        $obj->ID
-                    ));                	
-                }    
+                }
             });
         }
-    }
-
-    /**
-     * @return string
-     */
-    public function getIdentifier()
-    {
-        return SchemaScaffolder::DELETE;
     }
 
     /**
@@ -72,8 +63,8 @@ class Delete extends MutationScaffolder implements CRUDInterface
     protected function createArgs()
     {
         return [
-            'ID' => [
-                'type' => Type::nonNull(Type::id()),
+            'IDs' => [
+                'type' => Type::nonNull(Type::listOf(Type::id())),
             ],
         ];
     }

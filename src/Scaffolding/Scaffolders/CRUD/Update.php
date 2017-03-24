@@ -5,13 +5,14 @@ namespace SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\MutationScaffolder;
 use SilverStripe\GraphQL\Scaffolding\Traits\DataObjectTypeTrait;
+use SilverStripe\GraphQL\Scaffolding\Traits\CrudTrait;
 use GraphQL\Type\Definition\InputObjectType;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\GraphQL\Scaffolding\Util\TypeParser;
 use SilverStripe\ORM\DataList;
 use SilverStripe\GraphQL\Manager;
 use GraphQL\Type\Definition\Type;
-use SilverStripe\GraphQL\Scaffolding\Interfaces\CRUDInterface;
+use SilverStripe\GraphQL\Scaffolding\Interfaces\CRUDInputInterface;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
 use Exception;
 use SilverStripe\ORM\DataObjectSchema;
@@ -19,26 +20,33 @@ use SilverStripe\ORM\DataObjectSchema;
 /**
  * Scaffolds a generic update operation for DataObjects.
  */
-class Update extends MutationScaffolder implements CRUDInterface
+class Update extends MutationScaffolder implements CRUDInputInterface
 {
     use DataObjectTypeTrait;
+    use CrudTrait;
 
     /**
-     * UpdateOperationScaffolder constructor.
-     *
-     * @param string $dataObjectClass
+     * @return string
      */
-    public function __construct($dataObjectClass)
+    public function getIdentifier()
     {
-        $this->dataObjectClass = $dataObjectClass;
+        return SchemaScaffolder::UPDATE;
+    }
 
-        parent::__construct(
-            'update'.ucfirst($this->typeName()),
-            $this->typeName()
-        );
-
-        // Todo: this is totally half baked
-        $this->setResolver(function ($object, array $args, $context, $info) {
+    /**
+     * @return string
+     */
+    protected function createName()
+    {
+		return 'update'.ucfirst($this->typeName());
+    }
+    
+    /**
+     * @return \Closure
+     */
+    protected function createResolver()
+    {
+		return function ($object, array $args, $context, $info) {
             $obj = DataList::create($this->dataObjectClass)
                 ->byID($args['ID']);
             if (!$obj) {
@@ -60,15 +68,7 @@ class Update extends MutationScaffolder implements CRUDInterface
                     $this->dataObjectClass
                 ));
             }
-        });
-    }
-
-    /**
-     * @return string
-     */
-    public function getIdentifier()
-    {
-        return SchemaScaffolder::UPDATE;
+        }    	
     }
 
     /**
@@ -83,7 +83,7 @@ class Update extends MutationScaffolder implements CRUDInterface
                 'type' => Type::nonNull(Type::id())
             ],
             'Input' => [
-                'type' => Type::nonNull($this->generateInputType()),
+                'type' => Type::nonNull($this->createInputType()),
             ],
         ];
     }
@@ -93,7 +93,7 @@ class Update extends MutationScaffolder implements CRUDInterface
      *
      * @return InputObjectType
      */
-    protected function generateInputType()
+    protected function createInputType()
     {
         $fields = [];
         $instance = $this->getDataObjectInstance();

@@ -28,6 +28,10 @@ class SchemaScaffolder implements ManagerMutatorInterface
 
     const ALL = '*';
 
+    const LIST_ONLY = 'list-only';
+
+    const ITEM_ONLY = 'item-only';
+
     /**
      * @var array
      */
