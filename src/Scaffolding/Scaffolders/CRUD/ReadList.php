@@ -1,6 +1,6 @@
 <?php
 
-namespace SilverStripe\GraphQL\Scaffolding\Scaffolders\Read;
+namespace SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD;
 
 use SilverStripe\GraphQL\Scaffolding\Traits\DataObjectTypeTrait;
 use SilverStripe\ORM\DataList;
