@@ -1,6 +1,6 @@
 <?php
 
-namespace SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD;
+namespace SilverStripe\GraphQL\Scaffolding\Scaffolders\Update;
 
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\MutationScaffolder;
