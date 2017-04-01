@@ -95,7 +95,7 @@ class QueryScaffolder extends OperationScaffolder implements ManagerMutatorInter
 
         return [
             'name' => $this->operationName,
-            'args' => $this->createArgs(),
+            'args' => $this->createArgs($manager),
             'type' => $this->createTypeGetter($manager),
             'resolve' => $this->createResolverFunction(),
         ];
@@ -113,19 +113,7 @@ class QueryScaffolder extends OperationScaffolder implements ManagerMutatorInter
         return Connection::create($this->operationName)
             ->setConnectionType($this->createTypeGetter($manager))
             ->setConnectionResolver($this->createResolverFunction())
-            ->setArgs($this->createArgs())
+            ->setArgs($this->createArgs($manager))
             ->setSortableFields($this->sortableFields);
-    }
-
-    /**
-     * Creates a thunk that lazily fetches the type
-     * @param  Manager $manager
-     * @return \Closure
-     */
-    protected function createTypeGetter(Manager $manager)
-    {
-        return function () use ($manager) {
-            return $manager->getType($this->typeName);
-        };
     }
 }

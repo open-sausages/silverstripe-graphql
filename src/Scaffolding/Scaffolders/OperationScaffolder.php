@@ -6,6 +6,7 @@ use Doctrine\Instantiator\Exception\InvalidArgumentException;
 use SilverStripe\GraphQL\Scaffolding\Util\ArgsParser;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ResolverInterface;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\GraphQL\Manager;
 use SilverStripe\GraphQL\Scaffolding\Traits\Chainable;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Read;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Create;
@@ -43,26 +44,6 @@ abstract class OperationScaffolder implements ConfigurationApplier
      * @var array
      */
     protected $args = [];
-
-    /**
-     * @param $name
-     * @return  string|null
-     */
-    public static function getOperationScaffoldFromIdentifier($name)
-    {
-        switch ($name) {
-            case SchemaScaffolder::CREATE:
-                return Create::class;
-            case SchemaScaffolder::READ:
-                return Read::class;
-            case SchemaScaffolder::UPDATE:
-                return Update::class;
-            case SchemaScaffolder::DELETE:
-                return Delete::class;
-        }
-
-        return null;
-    }
 
     /**
      * OperationScaffolder constructor.
@@ -330,7 +311,7 @@ abstract class OperationScaffolder implements ConfigurationApplier
      *
      * @return array
      */
-    protected function createArgs()
+    protected function createArgs(Manager $manager)
     {
         $args = [];
         foreach ($this->args as $scaffolder) {
@@ -338,5 +319,17 @@ abstract class OperationScaffolder implements ConfigurationApplier
         }
 
         return $args;
+    }
+
+    /**
+     * Creates a thunk that lazily fetches the type
+     * @param  Manager $manager
+     * @return \Closure
+     */
+    protected function createTypeGetter(Manager $manager)
+    {
+        return function () use ($manager) {
+            return $manager->getType($this->typeName);
+        };
     }
 }

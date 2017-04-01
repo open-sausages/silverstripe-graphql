@@ -22,6 +22,11 @@ use SilverStripe\GraphQL\Scaffolding\Interfaces\ManagerMutatorInterface;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ScaffolderInterface;
 use SilverStripe\ORM\ArrayLib;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ConfigurationApplier;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Factory;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Read;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Update;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Delete;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Create;
 
 /**
  * Scaffolds a DataObjectTypeCreator.
@@ -259,22 +264,13 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
      */
     public function operation($operation)
     {
-        $scaffoldClass = OperationScaffolder::getOperationScaffoldFromIdentifier($operation);
-
-        if (!$scaffoldClass) {
-            throw new InvalidArgumentException(sprintf(
-                'Invalid operation: %s added to %s',
-                $operation,
-                $this->dataObjectClass
-            ));
-        }
-
-        $scaffolder = new $scaffoldClass($this->dataObjectClass);
         $existing = $this->operations->findByIdentifier($operation);
 
         if ($existing) {
             return $existing;
         }
+
+        $scaffolder = Factory::create($operation, $this->dataObjectClass);
 
         $this->operations->push(
             $scaffolder->setChainableParent($this)
@@ -411,12 +407,12 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
         }
 
         if (isset($config['operations'])) {
-            if ($config['operations'] === '*') {
+            if ($config['operations'] === SchemaScaffolder::ALL) {
                 $config['operations'] = [
-                    SchemaScaffolder::CREATE => true,
-                    SchemaScaffolder::READ => true,
-                    SchemaScaffolder::UPDATE => true,
-                    SchemaScaffolder::DELETE => true,
+                    Create::IDENTIFIER => true,
+                    Read::IDENTIFIER => true,
+                    Update::IDENTIFIER => true,
+                    Delete::IDENTIFIER => true,
                 ];
             }
 
@@ -431,8 +427,13 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
                     continue;
                 }
 
+                $mode = isset($opSettings['mode']) ?
+                    $opSettings['mode'] :
+                    SchemaScaffolder::ALL;
+
                 $this->operation($opID)
-                    ->applyConfig((array) $opSettings);
+                    ->applyConfig((array) $opSettings)
+                    ->setMode($mode);
             }
         }
 

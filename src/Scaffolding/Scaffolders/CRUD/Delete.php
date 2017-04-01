@@ -3,12 +3,11 @@
 namespace SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD;
 
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\MutationScaffolder;
-use SilverStripe\GraphQL\Scaffolding\Traits\DataObjectTypeTrait;
 use SilverStripe\GraphQL\Scaffolding\Traits\CrudTrait;
+use SilverStripe\GraphQL\Manager;
 use SilverStripe\ORM\DataList;
 use GraphQL\Type\Definition\Type;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\CRUDInterface;
-use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
 use Exception;
 use SilverStripe\ORM\DB;
 
@@ -17,29 +16,59 @@ use SilverStripe\ORM\DB;
  */
 class Delete extends MutationScaffolder implements CRUDInterface
 {
-    use DataObjectTypeTrait;
     use CrudTrait;
 
+    const IDENTIFIER = 'delete';
+
     /**
-     * @return string
+     * @return \Closure
      */
-    protected function createName()
+    protected function createItemResolver()
     {
-		return 'delete'.ucfirst($this->typeName());    	
+        return function ($object, array $args, $context, $info) {
+            DB::get_conn()->withTransaction(function () use ($args, $context) {
+                $id = (int) $args['ID'];
+                $result = DataList::create($this->dataObjectClass)
+                    ->byID($id);
+                
+                if (!$result) {
+                    throw new Exception(sprintf(
+                        '%s #%s not found',
+                        $this->dataObjectClass,
+                        $id
+                    ));
+                }
+
+                if (!$result->canDelete($context['currentUser'])) {
+                    throw new Exception(sprintf(
+                        'Cannot delete %s with ID %s',
+                        $this->dataObjectClass,
+                        $result->ID
+                    ));
+                }
+
+                $result->delete();
+
+                return $id;
+            });
+        };
     }
 
     /**
      * @return \Closure
      */
-    protected function createResolver()
+    protected function createListResolver()
     {
-    	return function ($object, array $args, $context, $info) {
+        return function ($object, array $args, $context, $info) {
             DB::get_conn()->withTransaction(function () use ($args, $context) {
-                $obj = DataList::create($this->dataObjectClass)
-                    ->byID($args['ID']);
-                if($obj) {
+                $ids = $args['IDs'];
+                $deletedIDs = [];
+                $results = DataList::create($this->dataObjectClass)
+                    ->byIDs($ids);
+                foreach ($results as $obj) {
                     if ($obj->canDelete($context['currentUser'])) {
                         $obj->delete();
+                        $deletedIDs[] = $obj->ID;
                     } else {
                         throw new Exception(sprintf(
                             'Cannot delete %s with ID %s',
@@ -47,34 +76,51 @@ class Delete extends MutationScaffolder implements CRUDInterface
                             $obj->ID
                         ));
                     }
-                } else {
-                    throw new Exception(sprintf(
-                        '%s with ID %s not found',
-                        $this->dataObjectClass,
-                        $obj->ID
-                    ));                	
-                }    
+                }
+
+                return $deletedIDs;
             });
-        }
+        };
     }
 
     /**
-     * @return string
+     * There is no input type for this operation. Method is defined
+     * to comply with the abstract member of CrudTrait
+     * @param  Manager $manager
+     * @return null
      */
-    public function getIdentifier()
+    protected function createInputType(Manager $manager)
     {
-        return SchemaScaffolder::DELETE;
+        return null;
     }
 
     /**
+     * @param  $manager Manager
      * @return array
      */
-    protected function createArgs()
+    protected function createArgs(Manager $manager)
     {
+        $key = $this->isItemScope() ? 'ID' : 'IDs';
+        $type = Type::id();
+        
+        if ($this->isListScope()) {
+            $type = Type::listOf($type);
+        }
+
         return [
-            'ID' => [
-                'type' => Type::nonNull(Type::id()),
+            $key => [
+                'type' => Type::nonNull($type),
             ],
         ];
+    }
+
+    /**
+     * Creates a thunk that lazily fetches the type
+     * @param  Manager $manager
+     * @return \Closure
+     */
+    protected function createTypeGetter(Manager $manager)
+    {
+        return $this->isItemScope() ? Type::id() : Type::listOf(Type::id());
     }
 }

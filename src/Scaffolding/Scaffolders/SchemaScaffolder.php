@@ -18,19 +18,15 @@ use \Exception;
  */
 class SchemaScaffolder implements ManagerMutatorInterface
 {
-    const CREATE = 'create';
-
-    const READ = 'read';
-
-    const UPDATE = 'update';
-
-    const DELETE = 'delete';
-
     const ALL = '*';
 
-    const LIST_ONLY = 'list-only';
+    const SCOPE_ITEM = 'item';
 
-    const ITEM_ONLY = 'item-only';
+    const SCOPE_LIST = 'list';
+
+    const MODE_LIST_ONLY = 'list-only';
+
+    const MODE_ITEM_ONLY = 'item-only';
 
     /**
      * @var array

@@ -18,7 +18,7 @@ class OperationList extends ArrayList
     public function __construct($items = [])
     {
         foreach ($items as $item) {
-            if (!$item instanceof OperationScaffold) {
+            if (!$item instanceof OperationScaffolder) {
                 throw new InvalidArgumentException(
                     '%s only accepts instances of %s',
                     __CLASS__,

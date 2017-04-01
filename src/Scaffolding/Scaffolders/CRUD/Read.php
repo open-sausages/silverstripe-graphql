@@ -3,15 +3,14 @@
 namespace SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD;
 
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\QueryScaffolder;
-use SilverStripe\GraphQL\Scaffolding\Traits\DataObjectTypeTrait;
 use SilverStripe\GraphQL\Scaffolding\Traits\CrudTrait;
 use SilverStripe\ORM\DataList;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\CRUDInterface;
-use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\UnionScaffolder;
 use SilverStripe\GraphQL\Scaffolding\Util\ScaffoldingUtil;
 use SilverStripe\GraphQL\Manager;
 use SilverStripe\Core\ClassInfo;
+use GraphQL\Type\Definition\Type;
 use Exception;
 
 /**
@@ -19,29 +18,16 @@ use Exception;
  */
 class Read extends QueryScaffolder implements CRUDInterface
 {
-    use DataObjectTypeTrait;
     use CrudTrait;
 
-    protected $usePagination = false;
-
-    /**
-     * @return string
-     */
-    protected function createName()
-    {
-        $typeName = $this->getDataObjectInstance()->plural_name();
-        $typeName = str_replace(' ', '', $typeName);
-        $typeName = ucfirst($typeName);
-        
-        return 'read'.$typeName;
-    }
+    const IDENTIFIER = 'read';
 
     /**
      * @return \Closure
      */
-    protected function createResolver()
+    protected function createListResolver()
     {
-		return function ($object, array $args, $context, $info) {
+        return function ($object, array $args, $context, $info) {
             if (!singleton($this->dataObjectClass)->canView($context['currentUser'])) {
                 throw new Exception(sprintf(
                     'Cannot view %s',
@@ -49,27 +35,42 @@ class Read extends QueryScaffolder implements CRUDInterface
                 ));
             }
 
-            $list = DataList::create($this->dataObjectClass)->first();
+            return DataList::create($this->dataObjectClass);
+        };
+    }
 
-            return $list;
-        }
+    /**
+     * @return \Closure
+     */
+    protected function createItemResolver()
+    {
+        $listFn = $this->createListResolver();
+
+        return function ($object, array $args, $context, $info) use ($listFn) {
+            $result = $listFn($object, $args, $context, $info);
+
+            return $result->first();
+        };
     }
 
     /**
      * Placeholder.
+     * @param  $manager Manager
      * @return array
      */
-    protected function createArgs()
+    protected function createArgs(Manager $manager)
     {
-    	return [];
+        return [];
     }
 
     /**
-     * @return string`
+     * Placeholder. Will eventually allow search inputs
+     * @param  Manager $manager
+     * @return null
      */
-    public function getIdentifier()
+    protected function createInputType(Manager $manager)
     {
-        return SchemaScaffolder::READ;
+        return null;
     }
 
     /**
@@ -80,24 +81,42 @@ class Read extends QueryScaffolder implements CRUDInterface
     protected function createTypeGetter(Manager $manager)
     {
         return function () use ($manager) {
-            // Create unions for exposed descendants
-            $descendants = ClassInfo::subclassesFor($this->dataObjectClass);
-            array_shift($descendants);
-            $union = [$this->typeName];
-            foreach ($descendants as $descendant) {
-                $typeName = ScaffoldingUtil::typeNameForDataObject($descendant);
-                if ($manager->hasType($typeName)) {
-                    $union[] = $typeName;
+            $unionTypeName = $this->typeName.'WithDescendants';
+            if ($manager->hasType($unionTypeName)) {
+                $baseType = $manager->getType($unionTypeName);
+            } else {
+
+                // Create unions for exposed descendants
+                $descendants = ClassInfo::subclassesFor($this->dataObjectClass);
+                array_shift($descendants);
+                $union = [$this->typeName];
+                foreach ($descendants as $descendant) {
+                    $typeName = ScaffoldingUtil::typeNameForDataObject($descendant);
+                    if ($manager->hasType($typeName)) {
+                        $union[] = $typeName;
+                    }
+                }
+                if (sizeof($union) > 1) {
+                    $baseType = (new UnionScaffolder($unionTypeName, $union))
+                        ->scaffold($manager);
+                    $manager->addType($baseType);
+                } else {
+                    $baseType = $manager->getType($this->typeName);
                 }
             }
-            if (sizeof($union) > 1) {
-                return (new UnionScaffolder(
-                    $this->typeName.'WithDescendants',
-                    $union
-                ))->scaffold($manager);
-            }
 
-            return $manager->getType($this->typeName);
+            return $baseType;
         };
+    }
+
+    /**
+     * Scaffolds the read query. Turns off pagination if necessary
+     * @param  Manager $manager
+     */
+    public function scaffold(Manager $manager)
+    {
+        $this->setUsePagination($this->isListScope());
+
+        return parent::scaffold($manager);
     }
 }
