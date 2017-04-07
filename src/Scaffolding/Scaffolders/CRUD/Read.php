@@ -74,11 +74,11 @@ class Read extends QueryScaffolder implements CRUDInterface
     }
 
     /**
-     * Creates a thunk that lazily fetches the type
+     * Creates a function that generates the unwrapped type
      * @param  Manager $manager
      * @return \Closure
      */
-    protected function createTypeGetter(Manager $manager)
+    protected function createBaseTypeGetter(Manager $manager)
     {
         return function () use ($manager) {
             $unionTypeName = $this->typeName.'WithDescendants';
@@ -107,16 +107,5 @@ class Read extends QueryScaffolder implements CRUDInterface
 
             return $baseType;
         };
-    }
-
-    /**
-     * Scaffolds the read query. Turns off pagination if necessary
-     * @param  Manager $manager
-     */
-    public function scaffold(Manager $manager)
-    {
-        $this->setUsePagination($this->isListScope());
-
-        return parent::scaffold($manager);
     }
 }

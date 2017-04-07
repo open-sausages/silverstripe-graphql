@@ -7,6 +7,7 @@ use SilverStripe\GraphQL\Pagination\Connection;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ManagerMutatorInterface;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ScaffolderInterface;
 use Doctrine\Instantiator\Exception\InvalidArgumentException;
+use GraphQL\Type\Definition\Type;
 
 /**
  * Scaffolds a GraphQL query field.
@@ -59,6 +60,11 @@ class QueryScaffolder extends OperationScaffolder implements ManagerMutatorInter
         return $this;
     }
 
+    /**
+     * Configure the query from an array
+     * @param  array  $config
+     * @return $this
+     */
     public function applyConfig(array $config)
     {
         parent::applyConfig($config);
@@ -85,13 +91,15 @@ class QueryScaffolder extends OperationScaffolder implements ManagerMutatorInter
      * @return array
      */
     public function scaffold(Manager $manager)
-    {
-        if ($this->usePagination) {
+    {             
+        if ($this->usePagination && $this->isListScope()) {
             return (new PaginationScaffolder(
                 $manager,
                 $this->createConnection($manager)
             ))->toArray();
         }
+
+        $typeGetter = $this->createTypeGetter($manager);
 
         return [
             'name' => $this->operationName,
@@ -111,7 +119,7 @@ class QueryScaffolder extends OperationScaffolder implements ManagerMutatorInter
         $typeName = $this->typeName;
 
         return Connection::create($this->operationName)
-            ->setConnectionType($this->createTypeGetter($manager))
+            ->setConnectionType($this->createBaseTypeGetter($manager))
             ->setConnectionResolver($this->createResolverFunction())
             ->setArgs($this->createArgs($manager))
             ->setSortableFields($this->sortableFields);

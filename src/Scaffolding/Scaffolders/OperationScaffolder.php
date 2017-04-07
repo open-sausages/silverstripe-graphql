@@ -8,6 +8,7 @@ use SilverStripe\GraphQL\Scaffolding\Interfaces\ResolverInterface;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\GraphQL\Manager;
 use SilverStripe\GraphQL\Scaffolding\Traits\Chainable;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Read;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Create;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Update;
@@ -15,6 +16,7 @@ use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Delete;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ConfigurationApplier;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\ArgumentScaffolder;
+use GraphQL\Type\Definition\Type;
 use Exception;
 
 /**
@@ -45,6 +47,12 @@ abstract class OperationScaffolder implements ConfigurationApplier
      */
     protected $args = [];
 
+	/**
+	 * @var string
+	 */
+	protected $scope;
+
+
     /**
      * OperationScaffolder constructor.
      *
@@ -56,6 +64,7 @@ abstract class OperationScaffolder implements ConfigurationApplier
         $this->operationName = $operationName;
         $this->typeName = $typeName;
         $this->args = ArrayList::create([]);
+        $this->setScope(SchemaScaffolder::SCOPE_LIST);
 
         if ($resolver) {
             $this->setResolver($resolver);
@@ -236,6 +245,30 @@ abstract class OperationScaffolder implements ConfigurationApplier
     }
 
     /**
+     * Sets the scope to item or list
+     * @param string $scope
+     */
+    public function setScope($scope)
+    {
+        $validScopes = [
+            SchemaScaffolder::SCOPE_ITEM,
+            SchemaScaffolder::SCOPE_LIST
+        ];
+
+        if (!in_array($scope, $validScopes)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid scope %s. Should be one of %s',
+                $scope,
+                implode('|', $validScopes)
+            ));
+        }  
+
+        $this->scope = $scope; 
+
+        return $this;	
+    }    
+
+    /**
      * @param array $config
      *
      * @return OperationScaffolder
@@ -274,6 +307,9 @@ abstract class OperationScaffolder implements ConfigurationApplier
         }
         if (isset($config['resolver'])) {
             $this->setResolver($config['resolver']);
+        }
+        if (isset($config['scope'])) {
+        	$this->setScope($config['scope']);
         }
 
         return $this;
@@ -322,14 +358,52 @@ abstract class OperationScaffolder implements ConfigurationApplier
     }
 
     /**
-     * Creates a thunk that lazily fetches the type
-     * @param  Manager $manager
+     * Returns true if the scope is item
+     * @return boolean
+     */
+    protected function isItemScope()
+    {
+        return $this->scope === SchemaScaffolder::SCOPE_ITEM;
+    }
+
+    /**
+     * Returns true if the scope is list
+     * @return boolean
+     */
+    protected function isListScope()
+    {
+        return $this->scope === SchemaScaffolder::SCOPE_LIST;
+    }
+
+    /**
+     * Creates a function that returns a wrapped or unwrapped type, depending
+     * on the scope
+     * @param  Manager $manager 
      * @return \Closure
      */
     protected function createTypeGetter(Manager $manager)
     {
-        return function () use ($manager) {
+    	$baseFn = $this->createBaseTypeGetter($manager);
+
+    	if($this->isListScope()) {
+    		return function () use ($baseFn) {
+    			return Type::listOf($baseFn());
+    		};
+    	}
+
+    	return $baseFn;
+    }
+
+    /**
+     * Creates a getter for the unwrapped type
+     * @param  Manager $manager 
+     * @return \Closure           
+     */
+    protected function createBaseTypeGetter(Manager $manager)
+    {
+    	return function () use ($manager) {
             return $manager->getType($this->typeName);
         };
     }
+
 }

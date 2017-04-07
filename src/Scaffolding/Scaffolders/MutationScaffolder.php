@@ -12,6 +12,18 @@ use SilverStripe\GraphQL\Scaffolding\Interfaces\ScaffolderInterface;
 class MutationScaffolder extends OperationScaffolder implements ManagerMutatorInterface, ScaffolderInterface
 {
     /**
+     * MutationScaffolder constructor.
+     *
+     * @param string $operationName
+     * @param Resolver|\Closure $resolver
+     */
+    public function __construct($operationName, $typeName, $resolver = null)
+    {
+    	parent::__construct($operationName, $typeName, $resolver);
+    	$this->setScope(SchemaScaffolder::SCOPE_ITEM);    	
+    }
+
+    /**
      * @param Manager $manager
      */
     public function addToManager(Manager $manager)

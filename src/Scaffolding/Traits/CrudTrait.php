@@ -11,14 +11,20 @@ trait CrudTrait
 {
     use DataObjectTypeTrait;
 
-    protected $scope;
-
+    /**
+     * @var string
+     */
     protected $mode;
 
+    /**
+     * A unique identifier for the CRUD operation
+     * @return string
+     */
     public static function getIdentifier()
     {
         return static::IDENTIFIER;
     }
+
     /**
      * The constructor for all CRUD operations.
      * @param string $dataObjectClass The FQCN of the DataObject
@@ -125,59 +131,9 @@ trait CrudTrait
      */
     protected function transformScope($scope)
     {
-        $validScopes = [
-            SchemaScaffolder::SCOPE_ITEM,
-            SchemaScaffolder::SCOPE_LIST
-        ];
-
-        if (!in_array($scope, $validScopes)) {
-            throw new InvalidArgumentException(sprintf(
-                'Invalid scope %s. Should be one of %s',
-                $scope,
-                implode('|', $validScopes)
-            ));
-        }
-
-        $this->scope = $scope;
+        $this->setScope($scope);
         $this->operationName = $this->createName();
         $this->setResolver($this->createResolver());
     }
 
-    /**
-     * Returns true if the scope is item
-     * @return boolean
-     */
-    protected function isItemScope()
-    {
-        return $this->scope === SchemaScaffolder::SCOPE_ITEM;
-    }
-
-    /**
-     * Returns true if the scope is list
-     * @return boolean
-     */
-    protected function isListScope()
-    {
-        return $this->scope === SchemaScaffolder::SCOPE_LIST;
-    }
-
-    /**
-     * Creates a thunk that lazily fetches the type
-     * @param  Manager $manager
-     * @return \Closure
-     */
-    protected function createTypeGetter(Manager $manager)
-    {
-        $itemFn = function () use ($manager) {
-            return $manager->getType($this->typeName);
-        };
-
-        if ($this->isItemScope()) {
-            return $itemFn;
-        }
-
-        return function () use ($itemFn) {
-            return Type::listOf($itemFn());
-        };
-    }
 }
