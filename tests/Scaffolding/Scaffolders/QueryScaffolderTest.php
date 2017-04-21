@@ -9,6 +9,7 @@ use SilverStripe\GraphQL\Scaffolding\Scaffolders\QueryScaffolder;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
 
 class QueryScaffolderTest extends SapphireTest
 {
@@ -18,6 +19,7 @@ class QueryScaffolderTest extends SapphireTest
             ->setMethods(['addQuery'])
             ->getMock();
         $scaffolder = new QueryScaffolder('testQuery', 'test');
+        $scaffolder->setScope(SchemaScaffolder::SCOPE_ITEM);
         $scaffolder->setUsePagination(false);
         $scaffolder->addArgs(['Test' => 'String']);
         $scaffold = $scaffolder->scaffold($manager = new Manager());
@@ -46,6 +48,7 @@ class QueryScaffolderTest extends SapphireTest
     public function testQueryScaffolderPaginated()
     {
         $scaffolder = new QueryScaffolder('testQuery', 'test');
+        $scaffolder->setScope(SchemaScaffolder::SCOPE_LIST);
         $scaffolder->setUsePagination(true);
         $scaffolder->addArgs(['Test' => 'String']);
         $scaffolder->addSortableFields(['test']);

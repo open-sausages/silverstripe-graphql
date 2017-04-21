@@ -19,8 +19,8 @@ class MutationScaffolder extends OperationScaffolder implements ManagerMutatorIn
      */
     public function __construct($operationName, $typeName, $resolver = null)
     {
-    	parent::__construct($operationName, $typeName, $resolver);
-    	$this->setScope(SchemaScaffolder::SCOPE_ITEM);    	
+        parent::__construct($operationName, $typeName, $resolver);
+        $this->setScope(SchemaScaffolder::SCOPE_ITEM);
     }
 
     /**

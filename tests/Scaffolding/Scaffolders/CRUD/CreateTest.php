@@ -1,6 +1,6 @@
 <?php
 
-namespace SilverStripe\GraphQL\Tests\Scaffolders\CRUD;
+namespace SilverStripe\GraphQL\Tests\Scaffolding\Scaffolders\CRUD;
 
 use SilverStripe\GraphQL\Manager;
 use SilverStripe\Dev\SapphireTest;
@@ -11,13 +11,19 @@ use GraphQL\Type\Definition\StringType;
 use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\IntType;
 use GraphQL\Type\Definition\Type;
+use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use SilverStripe\Security\Member;
 use SilverStripe\Core\Config\Config;
 use Exception;
 
+// @todo Won't autoload for some reason
+require_once(BASE_PATH.'/graphql/tests/Scaffolding/Scaffolders/CRUD/ModeHelper.php');
+
 class CreateTest extends SapphireTest
 {
+    use ModeHelper;
+
     protected static $extra_dataobjects = [
         'SilverStripe\GraphQL\Tests\Fake\DataObjectFake',
         'SilverStripe\GraphQL\Tests\Fake\RestrictedDataObjectFake',
@@ -46,24 +52,38 @@ class CreateTest extends SapphireTest
     public function testCreateOperationInputType()
     {
         $create = new Create(DataObjectFake::class);
-        $scaffold = $create->scaffold(new Manager());
 
-        $this->assertArrayHasKey('Input', $scaffold['args']);
-        $this->assertInstanceof(NonNull::class, $scaffold['args']['Input']['type']);
+        $reflect = new \ReflectionClass(Create::class);
+        $method = $reflect->getMethod('inputTypeName');
+        $method->setAccessible(true);
+        $inputTypeName = $method->invoke($create);
 
-        $config = $scaffold['args']['Input']['type']->getWrappedType()->config;
+        $this->eachMode(function ($mode, $isList) use ($create, $inputTypeName) {
+            $create->setMode($mode);
+            $manager = new Manager();
+            $create->addToManager($manager);
+            $scaffold = $create->scaffold($manager);
 
-        $this->assertEquals('Data_Object_FakeCreateInputType', $config['name']);
-        $fieldMap = [];
-        foreach ($config['fields'] as $name => $fieldData) {
-            $fieldMap[$name] = $fieldData['type'];
-        }
-        $this->assertArrayHasKey('Created', $fieldMap, 'Includes fixed_fields');
-        $this->assertArrayHasKey('MyField', $fieldMap);
-        $this->assertArrayHasKey('MyInt', $fieldMap);
-        $this->assertArrayNotHasKey('ID', $fieldMap);
-        $this->assertInstanceOf(StringType::class, $fieldMap['MyField']);
-        $this->assertInstanceOf(IntType::class, $fieldMap['MyInt']);
+            $this->assertArrayHasKey('Input', $scaffold['args']);
+            $this->assertInstanceof(NonNull::class, $scaffold['args']['Input']['type']());
+
+            $wrapped = $scaffold['args']['Input']['type']()->getWrappedType();
+            $config = $isList ?
+                $wrapped->getWrappedType()->config :
+                $wrapped->config;
+
+            $this->assertEquals($inputTypeName, $config['name']);
+            $fieldMap = [];
+            foreach ($config['fields'] as $name => $fieldData) {
+                $fieldMap[$name] = $fieldData['type'];
+            }
+            $this->assertArrayHasKey('Created', $fieldMap, 'Includes fixed_fields');
+            $this->assertArrayHasKey('MyField', $fieldMap);
+            $this->assertArrayHasKey('MyInt', $fieldMap);
+            $this->assertArrayNotHasKey('ID', $fieldMap);
+            $this->assertInstanceOf(StringType::class, $fieldMap['MyField']);
+            $this->assertInstanceOf(IntType::class, $fieldMap['MyInt']);
+        });
     }
 
     public function testCreateOperationPermissionCheck()

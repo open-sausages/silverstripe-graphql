@@ -426,14 +426,16 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
                 if ($opSettings === false) {
                     continue;
                 }
+                if ($opSettings === true) {
+                    $opSettings = [];
+                }
 
-                $mode = isset($opSettings['mode']) ?
-                    $opSettings['mode'] :
-                    SchemaScaffolder::ALL;
+                if (!isset($opSettings['mode'])) {
+                    $opSettings['mode'] = SchemaScaffolder::ALL;
+                }
 
                 $this->operation($opID)
-                    ->applyConfig((array) $opSettings)
-                    ->setMode($mode);
+                    ->applyConfig((array) $opSettings);
             }
         }
 

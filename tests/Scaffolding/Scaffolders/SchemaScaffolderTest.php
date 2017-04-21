@@ -66,9 +66,9 @@ class SchemaScaffolderTest extends SapphireTest
         $scaffolder = (new SchemaScaffolder())
             ->type(FakeRedirectorPage::class)
                 ->addFields(['Created', 'TestPageField', 'RedirectionType'])
-                ->operation(SchemaScaffolder::CREATE)
+                ->operation(Create::IDENTIFIER)
                     ->end()
-                ->operation(SchemaScaffolder::READ)
+                ->operation(Read::IDENTIFIER)
                     ->end()
                 ->end()
             ->type(DataObjectFake::class)
@@ -119,28 +119,28 @@ class SchemaScaffolderTest extends SapphireTest
 
         $this->assertInstanceof(
             Read::class,
-            $scaffolder->type(FakeRedirectorPage::class)->getOperations()->findByIdentifier(SchemaScaffolder::READ)
+            $scaffolder->type(FakeRedirectorPage::class)->getOperations()->findByIdentifier(Read::IDENTIFIER)
         );
         $this->assertInstanceof(
             Read::class,
-            $scaffolder->type(FakePage::class)->getOperations()->findByIdentifier(SchemaScaffolder::READ)
+            $scaffolder->type(FakePage::class)->getOperations()->findByIdentifier(Read::IDENTIFIER)
         );
         $this->assertInstanceof(
             Read::class,
-            $scaffolder->type(FakeSiteTree::class)->getOperations()->findByIdentifier(SchemaScaffolder::READ)
+            $scaffolder->type(FakeSiteTree::class)->getOperations()->findByIdentifier(Read::IDENTIFIER)
         );
 
         $this->assertInstanceof(
             Create::class,
-            $scaffolder->type(FakeRedirectorPage::class)->getOperations()->findByIdentifier(SchemaScaffolder::CREATE)
+            $scaffolder->type(FakeRedirectorPage::class)->getOperations()->findByIdentifier(Create::IDENTIFIER)
         );
         $this->assertInstanceof(
             Create::class,
-            $scaffolder->type(FakePage::class)->getOperations()->findByIdentifier(SchemaScaffolder::CREATE)
+            $scaffolder->type(FakePage::class)->getOperations()->findByIdentifier(Create::IDENTIFIER)
         );
         $this->assertInstanceof(
             Create::class,
-            $scaffolder->type(FakeSiteTree::class)->getOperations()->findByIdentifier(SchemaScaffolder::CREATE)
+            $scaffolder->type(FakeSiteTree::class)->getOperations()->findByIdentifier(Create::IDENTIFIER)
         );
     }
 

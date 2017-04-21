@@ -91,15 +91,13 @@ class QueryScaffolder extends OperationScaffolder implements ManagerMutatorInter
      * @return array
      */
     public function scaffold(Manager $manager)
-    {             
+    {
         if ($this->usePagination && $this->isListScope()) {
             return (new PaginationScaffolder(
                 $manager,
                 $this->createConnection($manager)
             ))->toArray();
         }
-
-        $typeGetter = $this->createTypeGetter($manager);
 
         return [
             'name' => $this->operationName,
@@ -116,8 +114,6 @@ class QueryScaffolder extends OperationScaffolder implements ManagerMutatorInter
      */
     protected function createConnection(Manager $manager)
     {
-        $typeName = $this->typeName;
-
         return Connection::create($this->operationName)
             ->setConnectionType($this->createBaseTypeGetter($manager))
             ->setConnectionResolver($this->createResolverFunction())

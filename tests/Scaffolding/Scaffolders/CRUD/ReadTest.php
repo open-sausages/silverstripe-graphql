@@ -1,6 +1,6 @@
 <?php
 
-namespace SilverStripe\GraphQL\Tests\Scaffolders\CRUD;
+namespace SilverStripe\GraphQL\Tests\Scaffolding\Scaffolders\CRUD;
 
 use SilverStripe\GraphQL\Manager;
 use SilverStripe\Dev\SapphireTest;
@@ -16,6 +16,8 @@ use SilverStripe\Security\Member;
 
 class ReadTest extends SapphireTest
 {
+    use ModeHelper;
+
     protected static $extra_dataobjects = [
         'SilverStripe\GraphQL\Tests\Fake\DataObjectFake',
         'SilverStripe\GraphQL\Tests\Fake\RestrictedDataObjectFake',
@@ -56,35 +58,43 @@ class ReadTest extends SapphireTest
         $redirectorScaffold->addToManager($manager = new Manager());
         $read = new Read(FakeRedirectorPage::class);
         $read->setUsePagination(false);
+        $this->eachMode(function ($mode, $isList) use ($read, $manager, $redirectorScaffold) {
+            $read->setMode($mode);
+            $read->addToManager($manager);
+            $scaffold = $read->scaffold($manager);
+            $type = $scaffold['type']();
+            $this->assertEquals(
+                $redirectorScaffold->typeName(),
+                $isList ? $type->getWrappedType()->config['name'] : $type->config['name']
+            );
 
-        $scaffold = $read->scaffold($manager);
-        $type = $scaffold['type']();
-        $this->assertEquals(
-            $redirectorScaffold->typeName(),
-            $type->config['name']
-        );
+            $pageScaffold = new DataObjectScaffolder(FakePage::class);
+            $pageScaffold->addToManager($manager);
 
-        $pageScaffold = new DataObjectScaffolder(FakePage::class);
-        $pageScaffold->addToManager($manager);
+            $read = new Read(FakePage::class);
+            $read->setMode($mode);
+            $read->setUsePagination(false);
+            $read->addToManager($manager);
+            $scaffold = $read->scaffold($manager);
+            $unionType = $scaffold['type']();
 
-        $read = new Read(FakePage::class);
-        $read->setUsePagination(false);
+            if ($isList) {
+                $unionType = $unionType->getWrappedType();
+            }
 
-        $scaffold = $read->scaffold($manager);
-        $unionType = $scaffold['type']();
-        $this->assertEquals(
-            $pageScaffold->typeName().'WithDescendants',
-            $unionType->name
-        );
-        $types = $unionType->getTypes();
-        $this->assertEquals(
-            $pageScaffold->typeName(),
-            $types[0]->config['name']
-        );
-        $this->assertEquals(
-            $redirectorScaffold->typeName(),
-            $types[1]->config['name']
-        );
-
+            $this->assertEquals(
+                $pageScaffold->typeName().'WithDescendants',
+                $unionType->name
+            );
+            $types = $unionType->getTypes();
+            $this->assertEquals(
+                $pageScaffold->typeName(),
+                $types[0]->config['name']
+            );
+            $this->assertEquals(
+                $redirectorScaffold->typeName(),
+                $types[1]->config['name']
+            );
+        });
     }
 }

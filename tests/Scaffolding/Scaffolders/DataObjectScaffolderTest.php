@@ -23,19 +23,6 @@ use Exception;
 
 class DataObjectScaffolderTest extends SapphireTest
 {
-    public function testDataObjectScaffolderConstructor()
-    {
-        $scaffolder = $this->getFakeScaffolder();
-        $this->assertEquals(DataObjectFake::class, $scaffolder->getDataObjectClass());
-        $this->assertInstanceOf(DataObjectFake::class, $scaffolder->getDataObjectInstance());
-
-        $this->setExpectedExceptionRegExp(
-            InvalidArgumentException::class,
-            '/non-existent classname/'
-        );
-        $scaffolder = new DataObjectScaffolder('fail');
-    }
-
     public function testDataObjectScaffolderFields()
     {
         $scaffolder = $this->getFakeScaffolder();
@@ -109,31 +96,62 @@ class DataObjectScaffolderTest extends SapphireTest
         );
     }
 
+    public function testDataObjectScaffolderConstructor()
+    {
+        $scaffolder = $this->getFakeScaffolder();
+        $this->assertEquals(DataObjectFake::class, $scaffolder->getDataObjectClass());
+        $this->assertInstanceOf(DataObjectFake::class, $scaffolder->getDataObjectInstance());
+
+        $this->setExpectedExceptionRegExp(
+            InvalidArgumentException::class,
+            '/non-existent classname/'
+        );
+
+        new DataObjectScaffolder('fail');
+    }
+
     public function testDataObjectScaffolderOperations()
     {
         $scaffolder = $this->getFakeScaffolder();
-        $op = $scaffolder->operation(SchemaScaffolder::CREATE);
+        $op = $scaffolder->operation(Create::IDENTIFIER);
 
         $this->assertInstanceOf(CRUDInterface::class, $op);
 
         // Ensure we get back the same reference
         $op->Test = true;
-        $op = $scaffolder->operation(SchemaScaffolder::CREATE);
+        $op = $scaffolder->operation(Create::IDENTIFIER);
         $this->assertEquals(true, $op->Test);
 
         // Ensure duplicates aren't created
-        $scaffolder->operation(SchemaScaffolder::DELETE);
+        $scaffolder->operation(DELETE::IDENTIFIER);
         $this->assertEquals(2, $scaffolder->getOperations()->count());
 
-        $scaffolder->removeOperation(SchemaScaffolder::DELETE);
+        $scaffolder->removeOperation(DELETE::IDENTIFIER);
         $this->assertEquals(1, $scaffolder->getOperations()->count());
 
         $this->setExpectedExceptionRegExp(
             InvalidArgumentException::class,
-            '/Invalid operation/'
+            '/Invalid CRUD operation/'
         );
         $scaffolder = $this->getFakeScaffolder();
         $scaffolder->operation('fail');
+    }
+
+    public function testDataObjectScaffolderOperationModes()
+    {
+        $scaffolder = $this->getFakeScaffolder();
+        $result = $scaffolder->operation(Read::IDENTIFIER)
+            ->setMode(SchemaScaffolder::MODE_ITEM_ONLY);
+
+        $this->assertInstanceOf(Read::class, $result);
+
+        $this->setExpectedExceptionRegExp(
+            InvalidArgumentException::class,
+            '/Invalid mode/'
+        );
+
+        $scaffolder->operation(Delete::IDENTIFIER)
+            ->setMode('fail');
     }
 
     public function testDataObjectScaffolderNestedQueries()
@@ -208,8 +226,8 @@ class DataObjectScaffolderTest extends SapphireTest
         $observer->expects($this->exactly(2))
             ->method('operation')
             ->withConsecutive(
-                [$this->equalTo(SchemaScaffolder::CREATE)],
-                [$this->equalTo(SchemaScaffolder::READ)]
+                [$this->equalTo(Create::IDENTIFIER)],
+                [$this->equalTo(Read::IDENTIFIER)]
             )
             ->will($this->returnValue(
                 $this->getMockBuilder(Create::class)
@@ -326,10 +344,10 @@ class DataObjectScaffolderTest extends SapphireTest
         ]);
         $ops = $scaffolder->getOperations();
 
-        $this->assertInstanceOf(Create::class, $ops->findByIdentifier(SchemaScaffolder::CREATE));
-        $this->assertInstanceOf(Delete::class, $ops->findByIdentifier(SchemaScaffolder::DELETE));
-        $this->assertInstanceOf(Read::class, $ops->findByIdentifier(SchemaScaffolder::READ));
-        $this->assertInstanceOf(Update::class, $ops->findByIdentifier(SchemaScaffolder::UPDATE));
+        $this->assertInstanceOf(Create::class, $ops->findByIdentifier(Create::IDENTIFIER));
+        $this->assertInstanceOf(Delete::class, $ops->findByIdentifier(Delete::IDENTIFIER));
+        $this->assertInstanceOf(Read::class, $ops->findByIdentifier(Read::IDENTIFIER));
+        $this->assertInstanceOf(Update::class, $ops->findByIdentifier(Update::IDENTIFIER));
 
         $this->assertEquals(
             ['ID', 'ClassName', 'LastEdited', 'Created', 'MyField', 'MyInt', 'Author'],
@@ -379,9 +397,9 @@ class DataObjectScaffolderTest extends SapphireTest
         $manager = new Manager();
         $scaffolder = $this->getFakeScaffolder()
             ->addFields(['MyField'])
-            ->operation(SchemaScaffolder::CREATE)
+            ->operation(Create::IDENTIFIER)
                 ->end()
-            ->operation(SchemaScaffolder::READ)
+            ->operation(Read::IDENTIFIER)
                 ->end();
 
         $scaffolder->addToManager($manager);

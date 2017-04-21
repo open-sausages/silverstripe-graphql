@@ -4,8 +4,8 @@ namespace SilverStripe\GraphQL\Scaffolding\Traits;
 
 use SilverStripe\GraphQL\Manager;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
+use Doctrine\Instantiator\Exception\InvalidArgumentException;
 use GraphQL\Type\Definition\Type;
-use SilverStripe\GraphQL\Scaffolding\Traits\DataObjectTypeTrait;
 
 trait CrudTrait
 {
@@ -32,11 +32,14 @@ trait CrudTrait
     public function __construct($dataObjectClass)
     {
         $this->dataObjectClass = $dataObjectClass;
+        $this->mode = SchemaScaffolder::ALL;
 
         parent::__construct(
             $this->createName(),
             $this->typeName()
         );
+
+        $this->setResolver($this->createResolver());
     }
 
     /**
@@ -114,6 +117,7 @@ trait CrudTrait
     abstract protected function createListResolver();
 
     abstract protected function createItemResolver();
+
     /**
      * Creates a resolver for the operation
      * @return \Closure
@@ -135,5 +139,4 @@ trait CrudTrait
         $this->operationName = $this->createName();
         $this->setResolver($this->createResolver());
     }
-
 }

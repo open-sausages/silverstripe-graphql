@@ -47,10 +47,10 @@ abstract class OperationScaffolder implements ConfigurationApplier
      */
     protected $args = [];
 
-	/**
-	 * @var string
-	 */
-	protected $scope;
+    /**
+     * @var string
+     */
+    protected $scope;
 
 
     /**
@@ -261,12 +261,12 @@ abstract class OperationScaffolder implements ConfigurationApplier
                 $scope,
                 implode('|', $validScopes)
             ));
-        }  
+        }
 
-        $this->scope = $scope; 
+        $this->scope = $scope;
 
-        return $this;	
-    }    
+        return $this;
+    }
 
     /**
      * @param array $config
@@ -309,7 +309,7 @@ abstract class OperationScaffolder implements ConfigurationApplier
             $this->setResolver($config['resolver']);
         }
         if (isset($config['scope'])) {
-        	$this->setScope($config['scope']);
+            $this->setScope($config['scope']);
         }
 
         return $this;
@@ -318,7 +318,7 @@ abstract class OperationScaffolder implements ConfigurationApplier
     /**
      * Based on the type of resolver, create a function that invokes it.
      *
-     * @return Closure
+     * @return \Closure
      */
     protected function createResolverFunction()
     {
@@ -378,32 +378,31 @@ abstract class OperationScaffolder implements ConfigurationApplier
     /**
      * Creates a function that returns a wrapped or unwrapped type, depending
      * on the scope
-     * @param  Manager $manager 
+     * @param  Manager $manager
      * @return \Closure
      */
     protected function createTypeGetter(Manager $manager)
     {
-    	$baseFn = $this->createBaseTypeGetter($manager);
+        $baseFn = $this->createBaseTypeGetter($manager);
 
-    	if($this->isListScope()) {
-    		return function () use ($baseFn) {
-    			return Type::listOf($baseFn());
-    		};
-    	}
+        if ($this->isListScope()) {
+            return function () use ($baseFn) {
+                return Type::listOf($baseFn());
+            };
+        }
 
-    	return $baseFn;
+        return $baseFn;
     }
 
     /**
      * Creates a getter for the unwrapped type
-     * @param  Manager $manager 
-     * @return \Closure           
+     * @param  Manager $manager
+     * @return \Closure
      */
     protected function createBaseTypeGetter(Manager $manager)
     {
-    	return function () use ($manager) {
+        return function () use ($manager) {
             return $manager->getType($this->typeName);
         };
     }
-
 }

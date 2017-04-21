@@ -19,7 +19,9 @@ use SilverStripe\ORM\DataObjectSchema;
  */
 class Update extends MutationScaffolder implements CRUDInterface
 {
-    use CrudTrait;
+    use CrudTrait {
+        addToManager as protected crudAddToManager;
+    }
 
     const IDENTIFIER = 'update';
 
@@ -144,14 +146,19 @@ class Update extends MutationScaffolder implements CRUDInterface
             return Type::nonNull(Type::listOf($baseFn()));
         };
 
-        return [
-            'ID' => [
-                'type' => Type::nonNull(Type::id())
-            ],
+        $args = [
             'Input' => [
                 'type' => $this->isListScope() ? $listFn : $itemFn
             ],
         ];
+
+        if ($this->isItemScope()) {
+            $args['ID'] = [
+                'type' => Type::nonNull(Type::id())
+            ];
+        }
+
+        return $args;
     }
 
     /**
@@ -169,7 +176,7 @@ class Update extends MutationScaffolder implements CRUDInterface
     /**
      * Creates the update input type
      * @param  Manager $manager
-     * @return InnputObjectType
+     * @return InputObjectType
      */
     protected function createItemInputType(Manager $manager)
     {
@@ -217,5 +224,19 @@ class Update extends MutationScaffolder implements CRUDInterface
                 ]
             ]
         ]);
+    }
+
+    /**
+     * "Overload" the trait method to ensure that the item input type always
+     * gets into the manager, regardless of the scope.
+     * @param Manager $manager
+     * @return void
+     */
+    public function addToManager(Manager $manager)
+    {
+        $this->crudAddToManager($manager);
+        if (!$manager->hasType($this->itemInputTypeName())) {
+            $manager->addType($this->createItemInputType($manager));
+        }
     }
 }

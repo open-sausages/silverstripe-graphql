@@ -3,11 +3,12 @@
 namespace SilverStripe\GraphQL\Tests\Scaffolders;
 
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
 use SilverStripe\GraphQL\Tests\Fake\OperationScaffolderFake;
 use SilverStripe\GraphQL\Tests\Fake\FakeResolver;
+use SilverStripe\GraphQL\Tests\Fake\DataObjectFake;
 use Doctrine\Instantiator\Exception\InvalidArgumentException;
-use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
-use SilverStripe\GraphQL\Scaffolding\Scaffolders\OperationScaffolder;
+use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Factory;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\ArgumentScaffolder;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Create;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\CRUD\Read;
@@ -26,21 +27,21 @@ class OperationScaffolderTest extends SapphireTest
 
     public function testOperationIdentifiers()
     {
-        $this->assertEquals(
+        $this->assertInstanceOf(
             Read::class,
-            OperationScaffolder::getOperationScaffoldFromIdentifier(SchemaScaffolder::READ)
+            Factory::create(Read::IDENTIFIER, DataObjectFake::class)
         );
-        $this->assertEquals(
+        $this->assertInstanceOf(
             Update::class,
-            OperationScaffolder::getOperationScaffoldFromIdentifier(SchemaScaffolder::UPDATE)
+            Factory::create(Update::IDENTIFIER, DataObjectFake::class)
         );
-        $this->assertEquals(
+        $this->assertInstanceOf(
             Delete::class,
-            OperationScaffolder::getOperationScaffoldFromIdentifier(SchemaScaffolder::DELETE)
+            Factory::create(Delete::IDENTIFIER, DataObjectFake::class)
         );
-        $this->assertEquals(
+        $this->assertInstanceOf(
             Create::class,
-            OperationScaffolder::getOperationScaffoldFromIdentifier(SchemaScaffolder::CREATE)
+            Factory::create(Create::IDENTIFIER, DataObjectFake::class)
         );
     }
 
@@ -217,5 +218,23 @@ class OperationScaffolderTest extends SapphireTest
 
         $this->assertInstanceof(Exception::class, $e);
         $this->assertRegExp('/should be mapped to a string or an array/', $e->getMessage());
+    }
+
+    public function testOperationScaffolderScope()
+    {
+        $scaffolder = new OperationScaffolderFake('testOperation', 'testType');
+        $result = $scaffolder->setScope(SchemaScaffolder::SCOPE_ITEM);
+        $this->assertInstanceOf(OperationScaffolderFake::class, $result);
+        $result = $scaffolder->setScope(SchemaScaffolder::SCOPE_LIST);
+        $this->assertInstanceOf(OperationScaffolderFake::class, $result);
+
+        $ex = null;
+        try {
+            $scaffolder->setScope('fail');
+        } catch (Exception $e) {
+            $ex = $e;
+        }
+
+        $this->assertInstanceOf(Exception::class, $ex);
     }
 }

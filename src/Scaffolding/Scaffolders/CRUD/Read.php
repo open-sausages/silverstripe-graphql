@@ -85,7 +85,6 @@ class Read extends QueryScaffolder implements CRUDInterface
             if ($manager->hasType($unionTypeName)) {
                 $baseType = $manager->getType($unionTypeName);
             } else {
-
                 // Create unions for exposed descendants
                 $descendants = ClassInfo::subclassesFor($this->dataObjectClass);
                 array_shift($descendants);
