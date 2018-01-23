@@ -4,9 +4,14 @@ namespace SilverStripe\GraphQL;
 
 use Doctrine\Instantiator\Exception\InvalidArgumentException;
 use GraphQL\Executor\ExecutionResult;
+use GraphQL\Language\Parser;
 use GraphQL\Language\SourceLocation;
 use GraphQL\Type\Schema;
 use GraphQL\GraphQL;
+use GraphQL\Utils\AST;
+use GraphQL\Utils\BuildSchema;
+use GraphQL\Utils\SchemaPrinter;
+use Psr\SimpleCache\CacheInterface;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Core\Injector\Injectable;
 use GraphQL\Type\Definition\ObjectType;
@@ -61,6 +66,11 @@ class Manager
      * @var Member
      */
     protected $member;
+
+    /**
+     * @var CacheInterface
+     */
+    protected $schemaCache;
 
     /**
      * @param array $config An array with optional 'types' and 'queries' keys
@@ -157,13 +167,24 @@ class Manager
      */
     public function schema()
     {
-        $schema = [
+        $cache = $this->getSchemaCache();
+        if ($cache->has('schema')) {
+            // See http://webonyx.github.io/graphql-php/type-system/type-language/
+            $document = AST::fromArray($cache->get('schema'));
+            $manager = $this;
+            return BuildSchema::build($document, function ($typeConfig, $typeDefinitionNode) use ($manager) {
+                // TODO Figure out resolver and interface/union mapping
+                return $typeConfig;
+            });
+        }
+
+        $schemaConfigParts = [
             // usually inferred from 'query', but required for polymorphism on InterfaceType-based query results
             self::TYPES_ROOT => $this->types,
         ];
 
         if (!empty($this->queries)) {
-            $schema[self::QUERY_ROOT] = new ObjectType([
+            $schemaConfigParts[self::QUERY_ROOT] = new ObjectType([
                 'name' => 'Query',
                 'fields' => function () {
                     return array_map(function ($query) {
@@ -174,7 +195,7 @@ class Manager
         }
 
         if (!empty($this->mutations)) {
-            $schema[self::MUTATION_ROOT] = new ObjectType([
+            $schemaConfigParts[self::MUTATION_ROOT] = new ObjectType([
                 'name' => 'Mutation',
                 'fields' => function () {
                     return array_map(function ($mutation) {
@@ -184,7 +205,12 @@ class Manager
             ]);
         }
 
-        return new Schema($schema);
+        $schema = new Schema($schemaConfigParts);
+        $schemaStr = SchemaPrinter::doPrint($schema);
+        $document = Parser::parse($schemaStr);
+        $cache->set('schema', AST::toArray($document));
+
+        return $schema;
     }
 
     /**
@@ -358,6 +384,11 @@ class Manager
     public function getMember()
     {
         return $this->member ?: Security::getCurrentUser();
+    }
+
+    public function getSchemaCache()
+    {
+        return Injector::inst()->get(CacheInterface::class . '.graphqlSchemaCache');
     }
 
     /**

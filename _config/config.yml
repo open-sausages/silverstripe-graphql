@@ -13,6 +13,10 @@ SilverStripe\Core\Injector\Injector:
     class: SilverStripe\GraphQL\Scaffolding\Util\StringTypeParser
   SilverStripe\GraphQL\Scaffolding\Interfaces\TypeParserInterface.array:
     class: SilverStripe\GraphQL\Scaffolding\Util\ArrayTypeParser
+  Psr\SimpleCache\CacheInterface.graphqlSchemaCache:
+    factory: SilverStripe\Core\Cache\CacheFactory
+    constructor:
+      namespace: "graphqlSchemaCache"
 
 # Assign each DBField subclass with an associated internal type
 SilverStripe\ORM\FieldType\DBField:
