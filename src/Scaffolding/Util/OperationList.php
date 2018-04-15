@@ -3,13 +3,13 @@
 namespace SilverStripe\GraphQL\Scaffolding\Util;
 
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\OperationScaffolder;
-use SilverStripe\ORM\ArrayListInterface;
+use SilverStripe\ORM\ArrayList;
 use InvalidArgumentException;
 
 /**
  * An array list designed to work with OperationScaffolders
  */
-class OperationList extends ArrayListInterface
+class OperationList extends ArrayList
 {
     /**
      * OperationList constructor.

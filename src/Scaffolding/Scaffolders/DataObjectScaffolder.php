@@ -19,7 +19,7 @@ use SilverStripe\GraphQL\Scaffolding\Traits\DataObjectTypeTrait;
 use SilverStripe\GraphQL\Scaffolding\Util\OperationList;
 use SilverStripe\GraphQL\Scaffolding\StaticSchema;
 use SilverStripe\ORM\ArrayLib;
-use SilverStripe\ORM\ArrayListInterface;
+use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DataObjectInterface;
@@ -49,7 +49,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     ];
 
     /**
-     * @var ArrayListInterface
+     * @var ArrayList
      */
     protected $fields;
 
@@ -89,7 +89,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
             );
         }
 
-        $this->fields = ArrayListInterface::create([]);
+        $this->fields = ArrayList::create([]);
         $this->operations = OperationList::create([]);
 
         $this->dataObjectClass = $dataObjectClass;
@@ -189,7 +189,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     }
 
     /**
-     * @return ArrayListInterface
+     * @return ArrayList
      */
     public function getFields()
     {
@@ -353,7 +353,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
             // If no scaffolder if provided, try to infer the type by resolving the field
             $result = $this->getDataObjectInstance()->obj($fieldName);
 
-            if (!$result instanceof DataList && !$result instanceof ArrayListInterface) {
+            if (!$result instanceof DataList && !$result instanceof ArrayList) {
                 throw new InvalidArgumentException(
                     sprintf(
                         '%s::addNestedQuery() tried to add %s, but must be passed a method name or relation that returns a DataList or ArrayList',
