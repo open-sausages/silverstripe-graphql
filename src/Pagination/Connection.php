@@ -11,7 +11,7 @@ use SilverStripe\Core\Injector\Injector;
 use SilverStripe\GraphQL\OperationResolver;
 use SilverStripe\ORM\Limitable;
 use SilverStripe\ORM\Sortable;
-use SilverStripe\ORM\SS_List;
+use SilverStripe\ORM\ListInterface;
 
 /**
  * A connection to a list of items on a object type. Collections are paginated
@@ -350,7 +350,7 @@ class Connection implements OperationResolver
             func_get_args()
         );
 
-        if (!$result instanceof SS_List) {
+        if (!$result instanceof ListInterface) {
             throw new \Exception('Connection::resolve() must resolve to a SS_List instance.');
         }
 
@@ -362,7 +362,7 @@ class Connection implements OperationResolver
      * a response. If you wish to resolve a standard array as a list use
      * {@link ArrayList}.
      *
-     * @param SS_List $list
+     * @param ListInterface $list
      * @param array $args
      * @param null $context
      * @param ResolveInfo $info

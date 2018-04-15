@@ -7,7 +7,7 @@ use PHPUnit_Framework_MockObject_MockBuilder;
 use ReflectionClass;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
-use SilverStripe\Control\HTTPResponse_Exception;
+use SilverStripe\Control\HTTPResponseException;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Core\Kernel;
@@ -160,7 +160,7 @@ class ControllerTest extends SapphireTest
     }
 
     /**
-     * @expectedException \SilverStripe\Control\HTTPResponse_Exception
+     * @expectedException \SilverStripe\Control\HTTPResponseException
      */
     public function testAddCorsHeadersOriginDisallowed()
     {
@@ -265,7 +265,7 @@ class ControllerTest extends SapphireTest
      */
     public function testAddCorsHeadersRefererPortDisallowed()
     {
-        $this->expectException(HTTPResponse_Exception::class);
+        $this->expectException(HTTPResponseException::class);
 
         Config::modify()->set(Controller::class, 'cors', [
             'Enabled' => true,
@@ -305,7 +305,7 @@ class ControllerTest extends SapphireTest
 
     public function testAddCorsHeadersOriginMissing()
     {
-        $this->expectException(HTTPResponse_Exception::class);
+        $this->expectException(HTTPResponseException::class);
 
         Controller::config()->set('cors', [
             'Enabled' => true,
@@ -326,7 +326,7 @@ class ControllerTest extends SapphireTest
      */
     public function testAddCorsHeadersResponseCORSDisabled()
     {
-        $this->expectException(HTTPResponse_Exception::class);
+        $this->expectException(HTTPResponseException::class);
 
         Config::modify()->set(Controller::class, 'cors', [
             'Enabled' => false

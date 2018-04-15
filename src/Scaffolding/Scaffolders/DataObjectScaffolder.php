@@ -19,12 +19,12 @@ use SilverStripe\GraphQL\Scaffolding\Traits\DataObjectTypeTrait;
 use SilverStripe\GraphQL\Scaffolding\Util\OperationList;
 use SilverStripe\GraphQL\Scaffolding\StaticSchema;
 use SilverStripe\ORM\ArrayLib;
-use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\ArrayListInterface;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DataObjectInterface;
 use SilverStripe\ORM\FieldType\DBField;
-use SilverStripe\ORM\SS_List;
+use SilverStripe\ORM\ListInterface;
 use SilverStripe\ORM\UnsavedRelationList;
 use SilverStripe\View\ArrayData;
 
@@ -49,7 +49,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     ];
 
     /**
-     * @var ArrayList
+     * @var ArrayListInterface
      */
     protected $fields;
 
@@ -89,7 +89,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
             );
         }
 
-        $this->fields = ArrayList::create([]);
+        $this->fields = ArrayListInterface::create([]);
         $this->operations = OperationList::create([]);
 
         $this->dataObjectClass = $dataObjectClass;
@@ -189,7 +189,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     }
 
     /**
-     * @return ArrayList
+     * @return ArrayListInterface
      */
     public function getFields()
     {
@@ -353,7 +353,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
             // If no scaffolder if provided, try to infer the type by resolving the field
             $result = $this->getDataObjectInstance()->obj($fieldName);
 
-            if (!$result instanceof DataList && !$result instanceof ArrayList) {
+            if (!$result instanceof DataList && !$result instanceof ArrayListInterface) {
                 throw new InvalidArgumentException(
                     sprintf(
                         '%s::addNestedQuery() tried to add %s, but must be passed a method name or relation that returns a DataList or ArrayList',
@@ -691,7 +691,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
 
             $result = $instance->obj($fieldName);
 
-            if ($result instanceof SS_List) {
+            if ($result instanceof ListInterface) {
                 throw new InvalidArgumentException(
                     sprintf(
                         'Fieldname %s added to %s returns a list. This should be defined as a nested query using addNestedQuery(%s)',

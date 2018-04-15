@@ -11,7 +11,7 @@ use SilverStripe\GraphQL\Manager;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ConfigurationApplier;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ResolverInterface;
 use SilverStripe\GraphQL\Scaffolding\Traits\Chainable;
-use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\ArrayListInterface;
 
 /**
  * Provides functionality common to both operation scaffolders. Cannot
@@ -40,7 +40,7 @@ abstract class OperationScaffolder implements ConfigurationApplier
     /**
      * List of argument scaffolders
      *
-     * @var ArrayList|ArgumentScaffolder[]
+     * @var ArrayListInterface|ArgumentScaffolder[]
      */
     protected $args = [];
 
@@ -97,7 +97,7 @@ abstract class OperationScaffolder implements ConfigurationApplier
     {
         $this->operationName = $operationName;
         $this->typeName = $typeName;
-        $this->args = ArrayList::create([]);
+        $this->args = ArrayListInterface::create([]);
 
         if ($resolver) {
             $this->setResolver($resolver);
@@ -238,7 +238,7 @@ abstract class OperationScaffolder implements ConfigurationApplier
     }
 
     /**
-     * @return ArrayList
+     * @return ArrayListInterface
      */
     public function getArgs()
     {

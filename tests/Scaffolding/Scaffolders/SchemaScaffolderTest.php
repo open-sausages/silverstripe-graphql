@@ -22,7 +22,7 @@ use SilverStripe\GraphQL\Tests\Fake\FakePage;
 use SilverStripe\GraphQL\Tests\Fake\FakeRedirectorPage;
 use SilverStripe\GraphQL\Tests\Fake\FakeResolver;
 use SilverStripe\GraphQL\Tests\Fake\FakeSiteTree;
-use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\ArrayListInterface;
 use SilverStripe\Security\Member;
 
 class SchemaScaffolderTest extends SapphireTest
@@ -249,7 +249,7 @@ class SchemaScaffolderTest extends SapphireTest
 
     public function testSchemaScaffolderFixedTypeMustHaveTypeCreatorExtension()
     {
-        Config::modify()->merge(SchemaScaffolder::class, 'fixed_types', [ArrayList::class]);
+        Config::modify()->merge(SchemaScaffolder::class, 'fixed_types', [ArrayListInterface::class]);
         $this->expectException(Exception::class);
         $this->expectExceptionMessageRegExp('/Cannot auto register/');
         (new SchemaScaffolder())->addToManager(new Manager());

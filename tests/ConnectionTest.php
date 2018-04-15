@@ -14,7 +14,7 @@ use SilverStripe\GraphQL\Pagination\SortInputTypeCreator;
 use SilverStripe\GraphQL\Tests\Fake\DataObjectFake;
 use SilverStripe\GraphQL\Tests\Fake\PaginatedQueryFake;
 use SilverStripe\GraphQL\Tests\Fake\TypeCreatorFake;
-use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\ArrayListInterface;
 use InvalidArgumentException;
 
 class ConnectionTest extends SapphireTest
@@ -52,7 +52,7 @@ class ConnectionTest extends SapphireTest
                 return $this->manager->getType('TypeCreatorFake');
             })
             ->setConnectionResolver(function () {
-                $result = new ArrayList();
+                $result = new ArrayListInterface();
                 $result->push([
                     'ID' => 10,
                     'MyValue' => 'testMyValidResolverValue'

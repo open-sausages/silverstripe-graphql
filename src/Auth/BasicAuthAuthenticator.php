@@ -3,7 +3,7 @@
 namespace SilverStripe\GraphQL\Auth;
 
 use SilverStripe\Control\HTTPRequest;
-use SilverStripe\Control\HTTPResponse_Exception;
+use SilverStripe\Control\HTTPResponseException;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\BasicAuth;
 
@@ -18,7 +18,7 @@ class BasicAuthAuthenticator implements AuthenticatorInterface
     {
         try {
             return BasicAuth::requireLogin($request, 'Restricted resource');
-        } catch (HTTPResponse_Exception $ex) {
+        } catch (HTTPResponseException $ex) {
             // BasicAuth::requireLogin may throw its own exception with an HTTPResponse in it
             $failureMessage = (string) $ex->getResponse()->getBody();
             throw new ValidationException($failureMessage, 401);
