@@ -64,14 +64,6 @@ class Controller extends BaseController implements Flushable
     {
         parent::__construct();
         $this->manager = $manager;
-
-        if ($this->manager && $this->manager->getSchemaKey()) {
-            // Side effect. This isn't ideal, but having multiple instances of StaticSchema
-            // is a massive architectural change.
-            StaticSchema::reset();
-
-            $this->manager->configure();
-        }
     }
 
     /**

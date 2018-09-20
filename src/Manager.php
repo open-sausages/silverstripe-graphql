@@ -83,6 +83,11 @@ class Manager implements ConfigurationApplier
     {
         if ($schemaKey) {
             $this->setSchemaKey($schemaKey);
+            // Side effect. This isn't ideal, but having multiple instances of StaticSchema
+            // is a massive architectural change.
+            StaticSchema::reset();
+
+            $this->configure();
         }
     }
 

@@ -32,6 +32,12 @@ class MutationScaffolder extends OperationScaffolder implements ManagerMutatorIn
             $this->setDataObjectClass($class);
         }
         parent::__construct($operationName, $typeName, $resolver);
+
+        if (!$this->getTypeName()) {
+            $typeName = StaticSchema::inst()->typeNameForDataObject($this->getDataObjectClass());
+            $this->setTypeName($typeName);
+        }
+
     }
 
     /**
@@ -54,16 +60,11 @@ class MutationScaffolder extends OperationScaffolder implements ManagerMutatorIn
     public function scaffold(Manager $manager)
     {
         return [
-            'name' => $this->getName(),
+            'name' => $this->getName($manager),
             'args' => $this->createArgs($manager),
             'type' => $this->getType($manager),
             'resolve' => $this->createResolverFunction(),
         ];
-    }
-
-    public function getTypeName()
-    {
-        return parent::getTypeName() ?: $this->typeName();
     }
 
     /**
@@ -94,5 +95,17 @@ class MutationScaffolder extends OperationScaffolder implements ManagerMutatorIn
             '%s must have either a typeName or dataObjectClass member defined.',
             __CLASS__
         ));
+    }
+
+    // Hack -- public version of method that shouldn't be protected see:
+    //https://github.com/silverstripe/silverstripe-graphql/pull/176
+    public function getResolvedType(Manager $manager)
+    {
+        return $this->getType($manager);
+    }
+
+    public function getResolvedTypeName(Manager $manager)
+    {
+        return $this->getResolvedType($manager)->config['name'];
     }
 }

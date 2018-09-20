@@ -37,6 +37,11 @@ abstract class QueryScaffolder extends OperationScaffolder implements ManagerMut
             $this->setDataObjectClass($class);
         }
         parent::__construct($operationName, $typeName, $resolver);
+
+        if (!$this->getTypeName()) {
+            $typeName = StaticSchema::inst()->typeNameForDataObject($this->getDataObjectClass());
+            $this->setTypeName($typeName);
+        }
     }
 
     /**
@@ -71,11 +76,6 @@ abstract class QueryScaffolder extends OperationScaffolder implements ManagerMut
         return $this;
     }
 
-    public function getTypeName()
-    {
-        return parent::getTypeName() ?: $this->typeName();
-    }
-
     /**
      * Get the type from Manager
      *
@@ -96,5 +96,17 @@ abstract class QueryScaffolder extends OperationScaffolder implements ManagerMut
             $manager,
             StaticSchema::PREFER_UNION
         );
+    }
+
+    // Hack -- public version of method that shouldn't be protected see:
+    //https://github.com/silverstripe/silverstripe-graphql/pull/176
+    public function getResolvedType(Manager $manager)
+    {
+        return $this->getType($manager);
+    }
+
+    public function getResolvedTypeName(Manager $manager)
+    {
+        return $this->getResolvedType($manager)->config['name'];
     }
 }
