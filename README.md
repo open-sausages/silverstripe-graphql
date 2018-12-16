@@ -2140,6 +2140,10 @@ SilverStripe\GraphQL\Controller:
     Allow-Methods:  'GET, POST, OPTIONS'
     Max-Age:  600  # 600 seconds = 10 minutes.
 ``` 
+## Caching
+
+
+
 ## Persisting queries
 
 A common pattern in GraphQL APIs is to store queries on the server by an identifier. This helps save

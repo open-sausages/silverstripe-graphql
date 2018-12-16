@@ -11,6 +11,8 @@ SilverStripe\Core\Injector\Injector:
     class: SilverStripe\GraphQL\Middleware\CSRFMiddleware
   SilverStripe\GraphQL\Middleware\QueryMiddleware.httpMethod:
     class: SilverStripe\GraphQL\Middleware\HTTPMethodMiddleware
+  SilverStripe\GraphQL\Middleware\QueryMiddleware.cacheControl:
+    class: SilverStripe\GraphQL\Middleware\CacheControlMiddleware
   SilverStripe\GraphQL\PersistedQuery\PersistedQueryMappingProvider:
     class: SilverStripe\GraphQL\PersistedQuery\JSONStringProvider
   SilverStripe\GraphQL\PersistedQuery\HTTPProvider:
@@ -25,6 +27,7 @@ SilverStripe\Core\Injector\Injector:
     properties:
       Middlewares:
         CSRFMiddleware: '%$SilverStripe\GraphQL\Middleware\QueryMiddleware.csrf'
+        CacheControlMiddleware: '%$SilverStripe\GraphQL\Middleware\QueryMiddleware.cacheControl'
         HTTPMethodMiddleware: '%$SilverStripe\GraphQL\Middleware\QueryMiddleware.httpMethod'
   SilverStripe\GraphQL\Controller.default:
     class: SilverStripe\GraphQL\Controller

@@ -71,6 +71,14 @@ class ReadOne extends ItemQueryScaffolder implements OperationResolver, CRUDInte
             ->filter('ID', $args['ID']);
         $this->extend('updateList', $list, $args, $context, $info);
 
+        // TODO Fold into generic resolver wrapper
+        $cachePath = join('.', $info->path);
+        $context['extensions'] = $context['extensions'] ?: [];
+        $context['extensions']['cacheControl'] = $context['extensions']['cacheControl'] ?: [];
+        $context['extensions']['cacheControl'][$cachePath] = [
+            'maxAge' => 60
+        ];
+
         return $list->first();
     }
 }
