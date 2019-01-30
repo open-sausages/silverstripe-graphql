@@ -60,6 +60,7 @@ class SchemaScaffolder implements ManagerMutatorInterface
      */
     public static function createFromConfig($config)
     {
+        /** @var self $scaffolder */
         $scaffolder = Injector::inst()->get(self::class);
 
         $scaffolder->extend('onBeforeCreateFromConfig', $config);
@@ -295,6 +296,7 @@ class SchemaScaffolder implements ManagerMutatorInterface
     public function addToManager(Manager $manager)
     {
         $this->registerFixedTypes($manager);
+
         $this->registerPeripheralTypes($manager);
 
         $this->extend('onBeforeAddToManager', $manager);
