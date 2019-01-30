@@ -315,9 +315,10 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
          */
         $scaffolder = Injector::inst()->createWithArgs($scaffoldClass, [$this->getDataObjectClass()]);
 
-        $this->operations->push(
-            $scaffolder->setChainableParent($this)
-        );
+        $operationObj = $scaffolder->setChainableParent($this);
+        $this->operations->push($operationObj);
+
+        $this->extend('onAfterOperation', $operationObj);
 
         return $scaffolder;
     }
