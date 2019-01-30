@@ -61,6 +61,9 @@ class SchemaScaffolder implements ManagerMutatorInterface
     public static function createFromConfig($config)
     {
         $scaffolder = Injector::inst()->get(self::class);
+
+        $scaffolder->extend('onBeforeCreateFromConfig', $config);
+
         if (isset($config['types'])) {
             if (!ArrayLib::is_associative($config['types'])) {
                 throw new InvalidArgumentException(
@@ -107,6 +110,8 @@ class SchemaScaffolder implements ManagerMutatorInterface
             }
         }
 
+        $scaffolder->extend('onAfterCreateFromConfig', $config);
+
         return $scaffolder;
     }
 
@@ -141,6 +146,8 @@ class SchemaScaffolder implements ManagerMutatorInterface
                 ->setChainableParent($this);
         $this->types[] = $scaffold;
 
+        $this->extend('onAfterType', $scaffold);
+
         return $scaffold;
     }
 
@@ -167,6 +174,8 @@ class SchemaScaffolder implements ManagerMutatorInterface
 
         $this->queries->push($operationScaffold);
 
+        $this->extend('onAfterQuery', $operationScaffold);
+
         return $operationScaffold;
     }
 
@@ -190,6 +199,8 @@ class SchemaScaffolder implements ManagerMutatorInterface
             ->setChainableParent($this);
 
         $this->mutations->push($operationScaffold);
+
+        $this->extend('onAfterMutation', $operationScaffold);
 
         return $operationScaffold;
     }
