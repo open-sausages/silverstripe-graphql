@@ -19,6 +19,7 @@ use SilverStripe\GraphQL\Scaffolding\Scaffolders\OperationScaffolder;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\QueryScaffolder;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
 use SilverStripe\GraphQL\Tests\Fake\DataObjectFake;
+use SilverStripe\GraphQL\Tests\Fake\ExtendedDataObjectFake;
 use SilverStripe\GraphQL\Tests\Fake\FakePage;
 use SilverStripe\GraphQL\Tests\Fake\FakeRedirectorPage;
 use SilverStripe\GraphQL\Tests\Fake\FakeSiteTree;
@@ -86,7 +87,7 @@ class DataObjectScaffolderTest extends SapphireTest
         );
 
         $scaffolder = $this->getFakeScaffolder();
-        $scaffolder->addAllFields(true);
+        $scaffolder->addAllFields($includeHasOne=true);
         $this->assertEquals(
             ['ID', 'ClassName', 'LastEdited', 'Created', 'MyField', 'MyInt', 'Author'],
             $scaffolder->getFields()->column('Name')
@@ -114,6 +115,32 @@ class DataObjectScaffolderTest extends SapphireTest
         $scaffolder->removeFields(['LastEdited', 'Created']);
         $this->assertEquals(
             ['ID', 'MyField', 'Author'],
+            $scaffolder->getFields()->column('Name')
+        );
+    }
+
+    public function testDataObjectScaffolderFieldsIncludeSublasses()
+    {
+        // DataObjectFake has a subclass called ExtendedDataObjectFake with MyExtendedField
+
+        $scaffolder = $this->getFakeScaffolder();
+        $scaffolder->addAllFields($includeHasOne=false, $includeSubclasses=false);
+        $this->assertEquals(
+            ['ID', 'ClassName', 'LastEdited', 'Created', 'MyField', 'MyInt'],
+            $scaffolder->getFields()->column('Name')
+        );
+
+        $scaffolder = $this->getFakeScaffolder();
+        $scaffolder->addAllFields($includeHasOne=false, $includeSubclasses=true);
+        $this->assertEquals(
+            ['ID', 'ClassName', 'LastEdited', 'Created', 'MyField', 'MyInt', 'MyExtendedField'],
+            $scaffolder->getFields()->column('Name')
+        );
+
+        $scaffolder = $this->getFakeScaffolder();
+        $scaffolder->addAllFieldsExcept(['MyExtendedField'], $includeHasOne=false, $includeSubclasses=true);
+        $this->assertEquals(
+            ['ID', 'ClassName', 'LastEdited', 'Created', 'MyField', 'MyInt'],
             $scaffolder->getFields()->column('Name')
         );
     }
@@ -489,5 +516,13 @@ class DataObjectScaffolderTest extends SapphireTest
     protected function getFakeScaffolder()
     {
         return new DataObjectScaffolder(DataObjectFake::class);
+    }
+
+    /**
+     * @return DataObjectScaffolder
+     */
+    protected function getExtendedFakeScaffolder()
+    {
+        return new DataObjectScaffolder(ExtendedDataObjectFake::class);
     }
 }

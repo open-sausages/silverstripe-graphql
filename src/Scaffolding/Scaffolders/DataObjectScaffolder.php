@@ -5,6 +5,7 @@ namespace SilverStripe\GraphQL\Scaffolding\Scaffolders;
 use Exception;
 use GraphQL\Type\Definition\ObjectType;
 use InvalidArgumentException;
+use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injector;
@@ -64,6 +65,13 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     protected $nestedQueries = [];
 
     /**
+     * @var bool Include fields from descendants in the same type.
+     * If set to false, scaffolded read queries will return a union
+     * of types.
+     */
+    protected $flattenDescendants = false;
+
+    /**
      * DataObjectScaffold constructor.
      *
      * @param string $dataObjectClass
@@ -76,9 +84,25 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     }
 
     /**
+     * @return bool
+     */
+    public function getFlattenDescendants()
+    {
+        return $this->flattenDescendants;
+    }
+
+    /**
+     * @param bool $flattenDescendants
+     */
+    public function setFlattenDescendants($flattenDescendants)
+    {
+        $this->flattenDescendants = $flattenDescendants;
+    }
+
+    /**
      * Name of graphql type
      *
-     * @return string
+     * @return strinnestedQueryg
      */
     public function getTypeName()
     {
@@ -129,12 +153,12 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
      * Adds all db fields, and optionally has_one.
      *
      * @param bool $includeHasOne
-     *
+     * @param bool $includeSubclasses Includes fields from all subclasses
      * @return $this
      */
-    public function addAllFields($includeHasOne = false)
+    public function addAllFields($includeHasOne = false, $includeSubclasses = false)
     {
-        $fields = $this->allFieldsFromDataObject($includeHasOne);
+        $fields = $this->allFieldsFromDataObject($includeHasOne, $includeSubclasses);
 
         return $this->addFields($fields);
     }
@@ -144,15 +168,15 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
      *
      * @param array|string $exclusions
      * @param bool $includeHasOne
-     *
+     * @param bool $includeSubclasses Includes fields from all subclasses
      * @return $this
      */
-    public function addAllFieldsExcept($exclusions, $includeHasOne = false)
+    public function addAllFieldsExcept($exclusions, $includeHasOne = false, $includeSubclasses = false)
     {
         if (!is_array($exclusions)) {
             $exclusions = [$exclusions];
         }
-        $fields = $this->allFieldsFromDataObject($includeHasOne);
+        $fields = $this->allFieldsFromDataObject($includeHasOne, $includeSubclasses);
         $filteredFields = array_diff($fields, $exclusions);
 
         return $this->addFields($filteredFields);
@@ -378,10 +402,14 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
      */
     public function getDependentClasses()
     {
-        return array_merge(
-            array_values($this->nestedDataObjectClasses()),
-            array_values($this->nestedConnections())
-        );
+        $classes = array_values($this->nestedConnections());
+
+        // Descendants are only "dependant" if their fields aren't flattened into the "base type"
+        if (!$this->getFlattenDescendants()) {
+            $classes = array_merge($classes, array_values($this->nestedDataObjectClasses()));
+        }
+
+        return $classes;
     }
 
     /**
@@ -407,7 +435,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
         $inst = $target->getDataObjectInstance();
 
         foreach ($this->getFields() as $field) {
-            if (StaticSchema::inst()->isValidFieldName($inst, $field->Name)) {
+            if (StaticSchema::inst()->isValidFieldName($inst, $field->Name, $this->getFlattenDescendants())) {
                 $target->addField($field->Name, $field->Description);
             }
         }
@@ -429,14 +457,20 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     public function applyConfig(array $config)
     {
         $dataObjectClass = $this->getDataObjectClass();
+
         if (empty($config['fields'])) {
             throw new Exception(
                 "No array of fields defined for $dataObjectClass"
             );
         }
+
+        if (isset($config['flattenDescendants'])) {
+            $this->setFlattenDescendants((bool)$config['flattenDescendants']);
+        }
+
         if (isset($config['fields'])) {
             if ($config['fields'] === SchemaScaffolder::ALL) {
-                $this->addAllFields(true);
+                $this->addAllFields(true, $this->getFlattenDescendants());
             } elseif (is_array($config['fields'])) {
                 $this->addFields($config['fields']);
             } else {
@@ -578,21 +612,24 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     }
 
     /**
-     * @param bool $includeHasOne
-     *
+     * @param bool $includeHasOne Includes has_one as nested types (not foreign key fields)
+     * @param bool $includeSubclasses Includes fields from all subclasses
      * @return array
      */
-    protected function allFieldsFromDataObject($includeHasOne = false)
+    protected function allFieldsFromDataObject($includeHasOne = false, $includeSubclasses = false)
     {
-        $fields = [];
-        $db = DataObject::config()->get('fixed_fields');
-        $extra = Config::inst()->get($this->getDataObjectClass(), 'db');
-        if ($extra) {
-            $db = array_merge($db, $extra);
-        }
+        $fields = array_keys(DataObject::config()->get('fixed_fields'));
 
-        foreach ($db as $fieldName => $type) {
-            $fields[] = $fieldName;
+        // Not using DataObjectSchema->databaseFields() because it includes has_one as foreign keys,
+        // and composite fields which can't be resolved without special handling.
+        $baseFieldSpecs = Config::inst()->get($this->getDataObjectClass(), 'db', Config::UNINHERITED) ?: [];
+        $fields = array_merge($fields, array_keys($baseFieldSpecs));
+
+        if ($includeSubclasses) {
+            foreach (ClassInfo::subclassesFor($this->getDataObjectClass()) as $subclass) {
+                $subclassFieldSpecs = Config::inst()->get($subclass, 'db', Config::UNINHERITED) ?: [];
+                $fields = array_merge($fields, array_keys($subclassFieldSpecs));
+            }
         }
 
         if ($includeHasOne) {
@@ -678,7 +715,7 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
 
         foreach ($this->fields as $fieldData) {
             $fieldName = $fieldData->Name;
-            if (!StaticSchema::inst()->isValidFieldName($instance, $fieldName)) {
+            if (!StaticSchema::inst()->isValidFieldName($instance, $fieldName, $this->getFlattenDescendants())) {
                 throw new InvalidArgumentException(
                     sprintf(
                         'Invalid field "%s" on %s',

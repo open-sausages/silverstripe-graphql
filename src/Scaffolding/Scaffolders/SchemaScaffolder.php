@@ -291,13 +291,18 @@ class SchemaScaffolder implements ManagerMutatorInterface
         // Add all DataObjects to the manager
         foreach ($this->types as $scaffold) {
             $scaffold->addToManager($manager);
-            $inheritanceScaffolder = new InheritanceScaffolder(
-                $scaffold->getDataObjectClass(),
-                StaticSchema::config()->get('inheritanceTypeSuffix')
-            );
-            // Due to shared ancestry, it's inevitable that the same union type will get added multiple times.
-            if (!$manager->hasType($inheritanceScaffolder->getName())) {
-                $inheritanceScaffolder->addToManager($manager);
+
+            // Optionally add descendant types. If this isn't set,
+            // fields on those descendant types can only be queried via type-specific operations.
+            if (!$scaffold->getFlattenDescendants()) {
+                $inheritanceScaffolder = new InheritanceScaffolder(
+                    $scaffold->getDataObjectClass(),
+                    StaticSchema::config()->get('inheritanceTypeSuffix')
+                );
+                // Due to shared ancestry, it's inevitable that the same union type will get added multiple times.
+                if (!$manager->hasType($inheritanceScaffolder->getName())) {
+                    $inheritanceScaffolder->addToManager($manager);
+                }
             }
         }
 

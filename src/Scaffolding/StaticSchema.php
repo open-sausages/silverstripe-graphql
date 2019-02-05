@@ -128,11 +128,27 @@ class StaticSchema
      *
      * @param ViewableData $instance
      * @param string $fieldName
+     * @param bool $includeSubclasses
      * @return bool
      */
-    public function isValidFieldName(ViewableData $instance, $fieldName)
+    public function isValidFieldName(ViewableData $instance, $fieldName, $includeSubclasses = false)
     {
-        return ($instance->hasMethod($fieldName) || $instance->hasField($fieldName));
+        $isValid = false;
+
+        if ($includeSubclasses) {
+            // Includes current class instance
+            foreach(ClassInfo::subclassesFor(get_class($instance)) as $subclass) {
+                $subclassInstance = singleton($subclass);
+                if (!$isValid && $subclassInstance->hasMethod($fieldName) || $subclassInstance->hasField($fieldName)) {
+                    // Early exit to improve performance
+                    $isValid = true;
+                }
+            }
+        } else {
+            $isValid = ($instance->hasMethod($fieldName) || $instance->hasField($fieldName));
+        }
+
+        return $isValid;
     }
 
     /**
