@@ -64,6 +64,16 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     protected $nestedQueries = [];
 
     /**
+     * @var bool Include ancestors and descendants in the types.
+     * Works around a regression which existing CMS GraphQL queries rely on.
+     * See https://github.com/silverstripe/silverstripe-versioned-admin/issues/98
+     * The proper default should be withDescendants=true.
+     * There's also a proposal for restructuring that whole thing:
+     * https://github.com/silverstripe/silverstripe-graphql/issues/209
+     */
+    protected $withDescendants = false;
+
+    /**
      * DataObjectScaffold constructor.
      *
      * @param string $dataObjectClass
@@ -76,9 +86,25 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     }
 
     /**
+     * @return bool
+     */
+    public function getWithDescendants()
+    {
+        return $this->withDescendants;
+    }
+
+    /**
+     * @param bool $withDescendants
+     */
+    public function setWithDescendants($withDescendants)
+    {
+        $this->withDescendants = $withDescendants;
+    }
+
+    /**
      * Name of graphql type
      *
-     * @return string
+     * @return strinnestedQueryg
      */
     public function getTypeName()
     {
@@ -536,6 +562,10 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
                         ->applyConfig((array)$settings);
                 }
             }
+        }
+
+        if (isset($config['withDescendants'])) {
+            $this->setWithDescendants((bool)$config['withDescendants']);
         }
 
         return $this;
