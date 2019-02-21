@@ -7,7 +7,6 @@ use InvalidArgumentException;
 use Exception;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Configurable;
-use SilverStripe\Core\Injector\Injector;
 use SilverStripe\GraphQL\Manager;
 use SilverStripe\ORM\ArrayLib;
 use SilverStripe\ORM\DataObject;
@@ -46,6 +45,12 @@ class StaticSchema
     private static $inheritanceTypeSuffix = 'WithDescendants';
 
     /**
+     * @config
+     * @var string
+     */
+    private static $interfaceTypeSuffix = 'Interface';
+
+    /**
      * @return static
      */
     public static function inst()
@@ -82,15 +87,38 @@ class StaticSchema
      */
     public function typeNameForDataObject($class)
     {
-        $customTypeName = $this->mappedTypeName($class);
-        if ($customTypeName) {
-            return $customTypeName;
+        $typeName = $this->mappedTypeName($class);
+
+        // Alternatively infer from class name
+        if (!$typeName) {
+            $parts = explode('\\', $class);
+            $inferredName = sizeof($parts) > 1 ? $parts[0] . end($parts) : $parts[0];
+            $typeName = $this->typeName($inferredName);
         }
 
-        $parts = explode('\\', $class);
-        $typeName = sizeof($parts) > 1 ? $parts[0] . end($parts) : $parts[0];
+        return $typeName;
+    }
 
-        return $this->typeName($typeName);
+    /**
+     * See {@link typeNameForDataObject}.
+     *
+     * @param string $class
+     * @return string
+     */
+    public function interfaceTypeNameForDataObject($class)
+    {
+        $typeName = $this->mappedTypeName($class);
+
+        // Alternatively infer from class name
+        if (!$typeName) {
+            $parts = explode('\\', $class);
+            $inferredName = sizeof($parts) > 1 ? $parts[0] . end($parts) : $parts[0];
+            $typeName = $this->typeName($inferredName);
+        }
+
+        $typeName = $this->interfaceTypeNameForType($typeName);
+
+        return $typeName;
     }
 
     /**
@@ -112,6 +140,17 @@ class StaticSchema
     public function inheritanceTypeNameForType($typeName)
     {
         return $typeName . $this->config()->get('inheritanceTypeSuffix');
+    }
+
+    /**
+     * Gets the interface type name.
+     *
+     * @param string $typeName
+     * @return string
+     */
+    public function interfaceTypeNameForType($typeName)
+    {
+        return $typeName . $this->config()->get('interfaceTypeSuffix');
     }
 
     /**
@@ -250,6 +289,27 @@ class StaticSchema
             'The class %s could not be resolved to any type in the manager instance.',
             $class
         ));
+    }
+
+    /**
+     * Gets the interface type from the manager given a DataObject class.
+     *
+     * @param string $class
+     * @param Manager $manager
+     * @return Type
+     */
+    public function fetchInterfaceFromManager($class, Manager $manager)
+    {
+        $typeName = $this->interfaceTypeNameForDataObject($class);
+
+        if (!$manager->hasType($typeName)) {
+            throw new InvalidArgumentException(sprintf(
+                'The class %s could not be resolved to any type in the manager instance.',
+                $class
+            ));
+        }
+
+        return $manager->getType($typeName);
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace SilverStripe\GraphQL\Tests\Scaffolders\Scaffolding;
 
 use Exception;
+use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use InvalidArgumentException;
@@ -207,6 +208,25 @@ class DataObjectScaffolderTest extends SapphireTest
             FakePage::class,
             FakeSiteTree::class,
         ], $classes);
+    }
+
+    public function testDataObjectScaffolderCreatesInterfaceType()
+    {
+        $scaffolder = new DataObjectScaffolder(DataObjectFake::class);
+        $managerMock = $this->getMockBuilder(Manager::class)
+            ->setMethods(['addType', 'hasType'])
+            ->getMock();
+        $managerMock->method('hasType')
+            ->will($this->returnValue(false));
+
+        $managerMock->expects($this->exactly(2))
+            ->method('addType')
+            ->withConsecutive(
+                [$this->isInstanceOf(ObjectType::class)],
+                [$this->isInstanceOf(InterfaceType::class)]
+            );
+
+        $scaffolder->addToManager($managerMock);
     }
 
     public function testDataObjectScaffolderApplyConfig()

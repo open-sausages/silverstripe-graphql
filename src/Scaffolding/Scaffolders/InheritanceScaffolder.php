@@ -10,7 +10,8 @@ use SilverStripe\GraphQL\Scaffolding\StaticSchema;
 use SilverStripe\ORM\DataObject;
 
 /**
- * Scaffolds a UnionType based on the ancestry of a DataObject class
+ * Scaffolds a UnionType based on the ancestry of a DataObject class.
+ * Relies on types being made available elsewhere.
  */
 class InheritanceScaffolder extends UnionScaffolder implements ManagerMutatorInterface
 {

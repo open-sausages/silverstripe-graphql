@@ -289,16 +289,31 @@ class SchemaScaffolder implements ManagerMutatorInterface
         $this->extend('onBeforeAddToManager', $manager);
 
         // Add all DataObjects to the manager
-        foreach ($this->types as $scaffold) {
-            $scaffold->addToManager($manager);
+        foreach ($this->types as $dataObjectScaffolder) {
+            // Types can't be modified after creation, so we need to determine the interface type names
+            // before actually creating the associated types below.
+            $interfaceScaffolder = new InterfaceScaffolder(
+                $dataObjectScaffolder->getDataObjectClass(),
+                StaticSchema::config()->get('interfaceTypeSuffix')
+            );
+            $dataObjectScaffolder->setInterfaceTypeNames($interfaceScaffolder->getTypeNames());
+
+            // Create base type
+            $dataObjectScaffolder->addToManager($manager);
+
+            // Create unions if required.
+            // Relies on registerPeripheralTypes() above to create the actual types.
             $inheritanceScaffolder = new InheritanceScaffolder(
-                $scaffold->getDataObjectClass(),
+                $dataObjectScaffolder->getDataObjectClass(),
                 StaticSchema::config()->get('inheritanceTypeSuffix')
             );
             // Due to shared ancestry, it's inevitable that the same union type will get added multiple times.
             if (!$manager->hasType($inheritanceScaffolder->getName())) {
                 $inheritanceScaffolder->addToManager($manager);
             }
+
+            // Create interfaces for base type
+            $interfaceScaffolder->addToManager($manager);
         }
 
         foreach ($this->queries as $scaffold) {

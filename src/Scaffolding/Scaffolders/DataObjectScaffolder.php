@@ -30,6 +30,11 @@ use SilverStripe\View\ArrayData;
 
 /**
  * Scaffolds a DataObjectTypeCreator.
+ *
+ * Creates an interface with the same fields for each class in the ancestry.
+ * This is important for deterministic query creation:
+ * When new types are added to the resulting union (through new subclasses),
+ * it doesn't invalidate queries, since all types implement the interfaces of their parent classes.
  */
 class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterface, ConfigurationApplier
 {
@@ -64,6 +69,12 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     protected $nestedQueries = [];
 
     /**
+     * @var string[] Used to set interfaces on the object.
+     * Relies on the actual types to be defined externally.
+     */
+    protected $interfaceTypeNames;
+
+    /**
      * DataObjectScaffold constructor.
      *
      * @param string $dataObjectClass
@@ -83,6 +94,24 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     public function getTypeName()
     {
         return $this->getDataObjectTypeName();
+    }
+
+    /**
+     * Name of all interface types related to this base type.
+     *
+     * @return string[]
+     */
+    public function getInterfaceTypeNames()
+    {
+        return $this->interfaceTypeNames;
+    }
+
+    /**
+     * @param string[] $interfaceTypeNames
+     */
+    public function setInterfaceTypeNames($interfaceTypeNames)
+    {
+        $this->interfaceTypeNames = $interfaceTypeNames;
     }
 
     /**
@@ -543,12 +572,24 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
      */
     public function scaffold(Manager $manager)
     {
+        // Relies on interfaces for ancestors created through InterfaceScaffolder
+        $interfaceTypeNames = $this->getInterfaceTypeNames();
+        $interfaceFn = null;
+        if ($interfaceTypeNames) {
+            $interfaceFn = function () use ($manager, $interfaceTypeNames) {
+                return array_map(function($interfaceTypeName) use ($manager) {
+                    return $manager->getType($interfaceTypeName);
+                }, $interfaceTypeNames);
+            };
+        }
+
         return new ObjectType(
             [
                 'name' => $this->getTypeName(),
                 'fields' => function () use ($manager) {
                     return $this->createFields($manager);
                 },
+                'interfaces' => $interfaceFn
             ]
         );
     }
@@ -561,9 +602,9 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     public function addToManager(Manager $manager)
     {
         $this->extend('onBeforeAddToManager', $manager);
-        $scaffold = $this->scaffold($manager);
+
         if (!$manager->hasType($this->getTypeName())) {
-            $manager->addType($scaffold, $this->getTypeName());
+            $manager->addType($this->scaffold($manager), $this->getTypeName());
         }
 
         foreach ($this->operations as $op) {
