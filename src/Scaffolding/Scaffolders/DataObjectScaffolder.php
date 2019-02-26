@@ -75,6 +75,11 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
     protected $interfaceTypeNames;
 
     /**
+     * @var array
+     */
+    protected $cachedFields;
+
+    /**
      * DataObjectScaffold constructor.
      *
      * @param string $dataObjectClass
@@ -440,10 +445,10 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
                 $target->addField($field->Name, $field->Description);
             }
         }
-        foreach ($this->getOperations() as $op) {
-            $identifier = OperationScaffolder::getIdentifier($op);
-            $target->operation($identifier);
-        }
+//        foreach ($this->getOperations() as $op) {
+//            $identifier = OperationScaffolder::getIdentifier($op);
+//            $target->operation($identifier);
+//        }
 
         return $target;
     }
@@ -694,78 +699,86 @@ class DataObjectScaffolder implements ManagerMutatorInterface, ScaffolderInterfa
      */
     protected function createFields(Manager $manager)
     {
-        $fieldMap = [];
-        $instance = $this->getDataObjectInstance();
-        $extraDataObjects = $this->nestedDataObjectClasses();
-        $this->fields->removeDuplicates('Name');
+        if (!$this->cachedFields) {
+            $fieldMap = [];
+            $instance = $this->getDataObjectInstance();
+            $extraDataObjects = $this->nestedDataObjectClasses();
+            $this->fields->removeDuplicates('Name');
 
-        if (!$this->fields->exists()) {
-            $this->addFields(
-                Config::inst()->get(self::class, 'default_fields')
-            );
-        }
+            $this->extend('onBeforeCreateFields', $manager);
 
-        $resolver = function ($obj, $args, $context, $info) {
-            /**
-             * @var DataObject $obj
-             */
-            $field = $obj->obj($info->fieldName);
-            // return the raw field value, or checks like `is_numeric()` fail
-            if ($field instanceof DBField && $field->isInternalGraphQLType()) {
-                return $field->getValue();
-            }
-            return $field;
-        };
-
-        foreach ($this->fields as $fieldData) {
-            $fieldName = $fieldData->Name;
-            if (!StaticSchema::inst()->isValidFieldName($instance, $fieldName)) {
-                throw new InvalidArgumentException(
-                    sprintf(
-                        'Invalid field "%s" on %s',
-                        $fieldName,
-                        $this->getDataObjectClass()
-                    )
+            if (!$this->fields->exists()) {
+                $this->addFields(
+                    Config::inst()->get(self::class, 'default_fields')
                 );
             }
 
-            $result = $instance->obj($fieldName);
+            $resolver = function ($obj, $args, $context, $info) {
+                /**
+                 * @var DataObject $obj
+                 */
+                $field = $obj->obj($info->fieldName);
+                // return the raw field value, or checks like `is_numeric()` fail
+                if ($field instanceof DBField && $field->isInternalGraphQLType()) {
+                    return $field->getValue();
+                }
+                return $field;
+            };
 
-            if ($result instanceof SS_List) {
-                throw new InvalidArgumentException(
-                    sprintf(
-                        'Fieldname %s added to %s returns a list. This should be defined as a nested query using addNestedQuery(%s)',
-                        $fieldName,
-                        $this->getDataObjectClass(),
-                        $fieldName
-                    )
-                );
+            foreach ($this->fields as $fieldData) {
+                $fieldName = $fieldData->Name;
+                if (!StaticSchema::inst()->isValidFieldName($instance, $fieldName)) {
+                    throw new InvalidArgumentException(
+                        sprintf(
+                            'Invalid field "%s" on %s',
+                            $fieldName,
+                            $this->getDataObjectClass()
+                        )
+                    );
+                }
+
+                $result = $instance->obj($fieldName);
+
+                if ($result instanceof SS_List) {
+                    throw new InvalidArgumentException(
+                        sprintf(
+                            'Fieldname %s added to %s returns a list. This should be defined as a nested query using addNestedQuery(%s)',
+                            $fieldName,
+                            $this->getDataObjectClass(),
+                            $fieldName
+                        )
+                    );
+                }
+
+                if ($result instanceof DBField) {
+                    /** @var DBField|TypeCreatorExtension $result */
+                    $fieldMap[$fieldName] = [];
+                    $fieldMap[$fieldName]['type'] = $result->getGraphQLType($manager);
+                    $fieldMap[$fieldName]['resolve'] = $resolver;
+                    $fieldMap[$fieldName]['description'] = $fieldData->Description;
+                }
             }
 
-            if ($result instanceof DBField) {
-                /** @var DBField|TypeCreatorExtension $result */
-                $fieldMap[$fieldName] = [];
-                $fieldMap[$fieldName]['type'] = $result->getGraphQLType($manager);
-                $fieldMap[$fieldName]['resolve'] = $resolver;
-                $fieldMap[$fieldName]['description'] = $fieldData->Description;
+            foreach ($extraDataObjects as $fieldName => $className) {
+                $description = $this->getFieldDescription($fieldName);
+                $fieldMap[$fieldName] = [
+                    'type' => StaticSchema::inst()->fetchFromManager($className, $manager),
+                    'description' => $description,
+                    'resolve' => $resolver,
+                ];
             }
+
+            foreach ($this->nestedQueries as $name => $scaffolder) {
+                $scaffold = $scaffolder->scaffold($manager);
+                $scaffold['name'] = $name;
+                $fieldMap[$name] = $scaffold;
+            }
+
+            $this->extend('onAfterCreateFields', $manager);
+
+            $this->cachedFields = $fieldMap;
         }
 
-        foreach ($extraDataObjects as $fieldName => $className) {
-            $description = $this->getFieldDescription($fieldName);
-            $fieldMap[$fieldName] = [
-                'type' => StaticSchema::inst()->fetchFromManager($className, $manager),
-                'description' => $description,
-                'resolve' => $resolver,
-            ];
-        }
-
-        foreach ($this->nestedQueries as $name => $scaffolder) {
-            $scaffold = $scaffolder->scaffold($manager);
-            $scaffold['name'] = $name;
-            $fieldMap[$name] = $scaffold;
-        }
-
-        return $fieldMap;
+        return $this->cachedFields;
     }
 }

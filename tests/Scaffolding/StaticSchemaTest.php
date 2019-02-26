@@ -8,7 +8,9 @@ use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\GraphQL\Manager;
 use SilverStripe\GraphQL\Scaffolding\StaticSchema;
+use SilverStripe\GraphQL\Tests\Fake\DataObjectChildFake;
 use SilverStripe\GraphQL\Tests\Fake\DataObjectFake;
+use SilverStripe\GraphQL\Tests\Fake\DataObjectGrandChildFake;
 use SilverStripe\GraphQL\Tests\Fake\FakePage;
 use SilverStripe\GraphQL\Tests\Fake\FakeRedirectorPage;
 use SilverStripe\GraphQL\Tests\Fake\FakeSiteTree;
@@ -29,6 +31,35 @@ class StaticSchemaTest extends SapphireTest
 
         $typename = $schema->typeNameForDataObject('UnNamespacedClass');
         $this->assertEquals('UnNamespacedClass', $typename);
+    }
+
+    public function testFetchRootClassForTypeFromManager()
+    {
+        $typeNames = [
+            // not including DataObjectFake as the actual "root"
+            // DataObjectFake::class => 'child',
+            DataObjectChildFake::class => 'child',
+            DataObjectGrandChildFake::class => 'grandchild',
+        ];
+        $schema = new StaticSchema();
+        $schema->setTypeNames($typeNames);
+
+        $manager = new Manager();
+        $manager->addType(new ObjectType([
+            'name' => 'child'
+        ]));
+        $manager->addType(new ObjectType([
+            'name' => 'grandchild'
+        ]));
+
+        $this->assertEquals(
+            DataObjectChildFake::class,
+            $schema->fetchRootClassForTypeFromManager(DataObjectGrandChildFake::class, $manager)
+        );
+        $this->assertEquals(
+            DataObjectChildFake::class,
+            $schema->fetchRootClassForTypeFromManager(DataObjectChildFake::class, $manager)
+        );
     }
 
     public function testEnsureDataObject()

@@ -64,7 +64,13 @@ class PaginationScaffolder extends PaginatedQueryCreator implements ManagerMutat
      */
     public function scaffold(Manager $manager)
     {
+
         $connectionName = $this->connection->getConnectionTypeName();
+
+        if (!$manager->hasType($connectionName)) {
+            $manager->addType($this->connection->toType());
+        }
+
         return [
             'name' => $this->operationName,
             'args' => $this->connection->args(),

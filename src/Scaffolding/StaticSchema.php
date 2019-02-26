@@ -143,6 +143,33 @@ class StaticSchema
     }
 
     /**
+     * Gets the type for the ancestor of this DataObject
+     * which is furthest to the "root" (extends DataObject), and has a registered type.
+     * This might be the class itself, or an object directly extending DataObject.
+     * Assumes that all types for this class hierarchy have already been registered.
+     *
+     * @param $class
+     * @param Manager $manager
+     * @return string
+     */
+    public function fetchRootClassForTypeFromManager($class, Manager $manager)
+    {
+        // Get ancestry including self, sorted by most remote
+        $ancestryAndSelf = array_merge(
+            $this->getAncestry($class),
+            [$class]
+        );
+        foreach ($ancestryAndSelf as $ancestor) {
+            $typeName = $this->typeNameForDataObject($ancestor);
+            if ($manager->hasType($typeName)) {
+                return $ancestor;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Gets the interface type name.
      *
      * @param string $typeName

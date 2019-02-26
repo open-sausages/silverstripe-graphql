@@ -169,7 +169,8 @@ class InterfaceScaffolder implements ManagerMutatorInterface
 
     protected function createFields(Manager $manager, $baseTypeName)
     {
-        $excludeFields = ['Versions'];
+//        $excludeFields = ['Versions'];
+        $excludeFields = [];
 
         $baseType = $manager->getType($baseTypeName);
         return array_filter($baseType->getFields(), function ($field) use ($excludeFields) {
