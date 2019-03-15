@@ -28,3 +28,9 @@ SilverStripe\ORM\FieldType\DBFloat:
   default_filters: [ gt, lt, gte, lte ]
 SilverStripe\ORM\FieldType\DBString:
   default_filters: [ contains ]
+SilverStripe\ORM\FieldType\DBDate:
+  default_filters: [ eq, gt, lt, gte, lte ]
+SilverStripe\ORM\FieldType\DBDatetime:
+  default_filters: [ eq, gt, lt, gte, lte ]
+SilverStripe\ORM\FieldType\DBTime:
+  default_filters: [ eq, gt, lt, gte, lte ]
