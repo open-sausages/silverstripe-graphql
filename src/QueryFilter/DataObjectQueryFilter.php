@@ -18,6 +18,11 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBField;
 use Exception;
 
+/**
+ * Encapsulates filter rules for filtering a specific DataObject class.
+ * Can apply these rules to a list of DataObjects,
+ * based on a set of filter arguments.
+ */
 class DataObjectQueryFilter implements ConfigurationApplier
 {
     use Chainable;
@@ -124,8 +129,8 @@ class DataObjectQueryFilter implements ConfigurationApplier
     }
 
     /**
-     * @param $fieldName
-     * @param $filterIdentifier
+     * @param string $fieldName
+     * @param string $filterIdentifier
      * @return $this
      */
     public function addFieldFilter($fieldName, $filterIdentifier)

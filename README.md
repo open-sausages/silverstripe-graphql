@@ -222,7 +222,8 @@ class ReadMembersQueryCreator extends QueryCreator implements OperationResolver
         }
         $list = Member::get();
 
-        // Optional filtering by properties
+        // Optional filtering by properties.
+        // See "Adding search params" chapter for more advanced examples
         if (isset($args['Email'])) {
             $list = $list->filter('Email', $args['Email']);
         }
@@ -546,17 +547,26 @@ So how do we do it? If you're using `QueryCreator` classes, a good approach is t
 in your constructor.
 
 ```php
-$this->queryFilter = DataObjectQueryFilter::create(MyDataObject::class);
+public function __construct(Manager $manager = null)
+{
+    parent::__construct($manager);
+    
+    $this->queryFilter = DataObjectQueryFilter::create(MyDataObject::class);
+}
 ``` 
 
 You can then add filters to fields of the dataobject.
 
 ```php
-$this->queryFilter
-    ->addFilteredField('Title', 'contains')
-    ->addFilteredField('CommentCount', 'gt')
-    ->addFilteredField('Categories__Title', 'in')
-    ->addFilteredField('Hidden', 'eq');
+public function __construct(Manager $manager = null)
+{
+    // ...
+    $this->queryFilter
+        ->addFilteredField('Title', 'contains')
+        ->addFilteredField('CommentCount', 'gt')
+        ->addFilteredField('Categories__Title', 'in')
+        ->addFilteredField('Hidden', 'eq');
+}
 ``` 
 
 Don't worry about the filter keys (`contains`, `gt`, `eq`, etc) for now. That will be explained [further down](#the-filter-registry).
@@ -943,6 +953,8 @@ $scaffolder->type(MyDataObject::class)
 #### Adding search params (read operations only)
 
 You can add all default filters for every field on your dataobject with `filters: '*'`.
+The definitions below are additional configuration for
+[scaffolded read operations](#scaffolding-dataobjects-into-the-schema).
 
 ```yaml
 read:

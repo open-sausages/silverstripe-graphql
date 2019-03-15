@@ -3,10 +3,13 @@
 
 namespace SilverStripe\GraphQL\QueryFilter;
 
+/**
+ * Manages named {@link FieldFilterInterface} instances.
+ */
 interface FilterRegistryInterface
 {
     /**
-     * @param $identifier
+     * @param string $identifier
      * @return mixed
      */
     public function getFilterByIdentifier($identifier);

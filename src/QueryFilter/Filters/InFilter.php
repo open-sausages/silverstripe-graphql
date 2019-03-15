@@ -6,6 +6,9 @@ namespace SilverStripe\GraphQL\QueryFilter\Filters;
 use SilverStripe\GraphQL\QueryFilter\ListFieldFilterInterface;
 use SilverStripe\ORM\DataList;
 
+/**
+ * Exact match for multiple values
+ */
 class InFilter implements ListFieldFilterInterface
 {
     public function applyInclusion(DataList $list, $fieldName, $value)
