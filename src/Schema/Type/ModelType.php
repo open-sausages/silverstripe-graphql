@@ -183,7 +183,7 @@ class ModelType extends Type implements ExtraTypeProvider
             }
         } else {
             foreach ($fields as $fieldName) {
-                $this->addField($fieldName, true);
+                $this->addField($fieldName);
             }
         }
 
@@ -357,8 +357,10 @@ class ModelType extends Type implements ExtraTypeProvider
                 $config
             );
             if ($operation) {
-                if ($operation instanceof Field && $this->getModel() instanceof ModelConfigurationProvider) {
-                    $operationsConfig = $this->getModel()->getModelConfig()->getOperationConfig($operationName);
+                if ($operation instanceof Field) {
+                    $operationsConfig = $this->getModel()
+                        ->getModelConfiguration()
+                        ->getOperationConfig($operationName);
                     $defaultPlugins = $operationsConfig['plugins'] ?? [];
                     $operation->setDefaultPlugins($defaultPlugins);
                 }

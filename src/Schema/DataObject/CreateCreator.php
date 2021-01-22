@@ -8,6 +8,7 @@ use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\GraphQL\QueryHandler\QueryHandler;
+use SilverStripe\GraphQL\QueryHandler\UserContextProvider;
 use SilverStripe\GraphQL\Schema\Exception\SchemaBuilderException;
 use SilverStripe\GraphQL\Schema\Field\ModelMutation;
 use SilverStripe\GraphQL\Schema\Interfaces\ModelOperation;
@@ -60,7 +61,7 @@ class CreateCreator implements OperationCreator, InputTypeProvider
         return ModelMutation::create($model, $mutationName)
             ->setType($typeName)
             ->setPlugins($plugins)
-            ->setDefaultResolver([static::class, 'resolve'])
+            ->setResolver([static::class, 'resolve'])
             ->setResolverContext([
                 'dataClass' => $model->getSourceClass(),
             ])
@@ -79,7 +80,8 @@ class CreateCreator implements OperationCreator, InputTypeProvider
                 return null;
             }
             $singleton = Injector::inst()->get($dataClass);
-            if (!$singleton->canCreate($context[QueryHandler::CURRENT_USER], $context)) {
+            $member = UserContextProvider::get($context);
+            if (!$singleton->canCreate($member, $context)) {
                 throw new PermissionsException("Cannot create {$dataClass}");
             }
 

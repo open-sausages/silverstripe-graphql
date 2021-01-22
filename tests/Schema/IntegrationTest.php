@@ -9,6 +9,7 @@ use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\GraphQL\QueryHandler\QueryHandler;
+use SilverStripe\GraphQL\QueryHandler\SchemaContextProvider;
 use SilverStripe\GraphQL\Schema\Exception\SchemaBuilderException;
 use SilverStripe\GraphQL\Schema\Exception\SchemaNotFoundException;
 use SilverStripe\GraphQL\Schema\Field\Query;
@@ -327,8 +328,9 @@ GRAPHQL;
             ]
         ];
         $schema = $this->createSchema($factory);
-        $queryType = $schema->getQueryType();
-        $mutationType = $schema->getMutationType();
+        $gql = $schema->fetch();
+        $queryType = $gql->getQueryType();
+        $mutationType = $gql->getMutationType();
         $queries = $queryType->getFields();
         $mutations = $mutationType->getFields();
 
@@ -761,25 +763,32 @@ GRAPHQL;
 
     /**
      * @param SchemaFactory $factory
-     * @return GraphQLSchema
+     * @return Schema
      * @throws SchemaBuilderException
-     * @throws SchemaNotFoundException
-     */
-    private function createSchema(SchemaFactory $factory): GraphQLSchema
+=     */
+    private function createSchema(SchemaFactory $factory): Schema
     {
         $this->clean();
-        Schema::quiet();
         $schema = $factory->boot();
         $schema->save();
 
-        return $schema->fetch();
+        return $schema;
     }
 
-    private function querySchema(GraphQLSchema $schema, string $query, array $variables = [])
+    /**
+     * @param Schema $schema
+     * @param string $query
+     * @param array $variables
+     * @return array
+     * @throws SchemaNotFoundException
+     */
+    private function querySchema(Schema $schema, string $query, array $variables = [])
     {
+        $graphQLSchena = $schema->fetch();
         $handler = new QueryHandler();
+        $handler->addContextProvider(SchemaContextProvider::create($schema));
         try {
-            return $handler->query($schema, $query, $variables);
+            return $handler->query($graphQLSchena, $query, $variables);
         } catch (Exception $e) {
             return [
                 'error' => $e->getMessage(),
@@ -797,7 +806,7 @@ GRAPHQL;
     {
         $errors = $result['errors'] ?? [];
         if (!empty($errors)) {
-            $this->fail('Failed to assert successful query. Got errors: ' . json_encode($errors));
+            $this->fail('Failed to assert successful query. Got errors: ' . json_encode($errors, JSON_PRETTY_PRINT));
         }
         $error = $result['error'] ?? null;
         if ($error) {
@@ -830,20 +839,20 @@ GRAPHQL;
         $this->assertEquals(json_encode($expected), json_encode($actual));
     }
 
-    private function assertSchemaHasType(GraphQLSchema $schema, string $type)
+    private function assertSchemaHasType(Schema $schema, string $type)
     {
         try {
-            $result = $schema->getType($type);
+            $result = $schema->fetch()->getType($type);
             $this->assertInstanceOf(ObjectType::class, $result);
         } catch (\Exception $e) {
             $this->fail('Schema does not have type "' . $type . '"');
         }
     }
 
-    private function assertSchemaNotHasType(GraphQLSchema $schema, string $type)
+    private function assertSchemaNotHasType(Schema $schema, string $type)
     {
         try {
-            $schema->getType($type);
+            $schema->fetch()->getType($type);
             $this->fail('Failed to assert that schema does not have type "' . $type . '"');
         } catch (\Exception $e) {
         }
