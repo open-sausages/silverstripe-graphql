@@ -27,5 +27,5 @@ interface QueryHandlerInterface
      * @param ContextProvider $provider
      * @return $this
      */
-    public function addContextProvider(ContextProvider $provider): self;
+    public function addContextProvider(ContextProvider $provider): QueryHandlerInterface;
 }

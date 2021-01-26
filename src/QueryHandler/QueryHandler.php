@@ -70,7 +70,7 @@ class QueryHandler implements
     /**
      * @param GraphQLSchema $schema
      * @param string $query
-     * @param array|null $params
+     * @param array|null $vars
      * @return array
      */
     public function query(GraphQLSchema $schema, string $query, ?array $vars = []): array
@@ -87,7 +87,7 @@ class QueryHandler implements
     /**
      * @param GraphQLSchema $schema
      * @param string $query
-     * @param array|null $params
+     * @param array|null $vars
      * @return array|ExecutionResult
      */
     public function queryAndReturnResult(GraphQLSchema $schema, string $query, ?array $vars = [])
@@ -134,7 +134,7 @@ class QueryHandler implements
      * @param ContextProvider $provider
      * @return $this
      */
-    public function addContextProvider(ContextProvider $provider): self
+    public function addContextProvider(ContextProvider $provider): QueryHandlerInterface
     {
         $this->contextProviders[] = $provider;
 
