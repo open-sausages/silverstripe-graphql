@@ -8,6 +8,7 @@ use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\GraphQL\QueryHandler\QueryHandler;
+use SilverStripe\GraphQL\QueryHandler\SchemaContextProvider;
 use SilverStripe\GraphQL\QueryHandler\UserContextProvider;
 use SilverStripe\GraphQL\Schema\Exception\SchemaBuilderException;
 use SilverStripe\GraphQL\Schema\Field\ModelMutation;
@@ -19,6 +20,7 @@ use SilverStripe\GraphQL\Schema\Exception\MutationException;
 use SilverStripe\GraphQL\Schema\Interfaces\OperationCreator;
 use SilverStripe\GraphQL\Schema\Exception\PermissionsException;
 use SilverStripe\GraphQL\Schema\Interfaces\SchemaModelInterface;
+use SilverStripe\GraphQL\Schema\Type\ModelType;
 use SilverStripe\ORM\DataList;
 use Closure;
 
@@ -78,18 +80,25 @@ class UpdateCreator implements OperationCreator, InputTypeProvider
             if (!$dataClass) {
                 return null;
             }
-            $idField = FieldAccessor::singleton()->formatField('ID');
+            $schema = SchemaContextProvider::get($context);
+            Schema::invariant(
+                $schema,
+                'Could not access schema in resolver for %s. Did you not add the %s context provider?',
+                __CLASS__,
+                SchemaContextProvider::class
+            );
+            $fieldName = FieldAccessor::formatField('ID');
             $input = $args['input'];
             $obj = DataList::create($dataClass)
-                ->byID($input[$idField]);
+                ->byID($input[$fieldName]);
             if (!$obj) {
                 throw new MutationException(sprintf(
                     '%s with ID %s not found',
                     $dataClass,
-                    $input[$idField]
+                    $input[$fieldName]
                 ));
             }
-            unset($input[$idField]);
+            unset($input[$fieldName]);
             $member = UserContextProvider::get($context);
             if (!$obj->canEdit($member)) {
                 throw new PermissionsException(sprintf(
@@ -97,10 +106,18 @@ class UpdateCreator implements OperationCreator, InputTypeProvider
                     $dataClass
                 ));
             }
-            $fieldAccessor = FieldAccessor::singleton();
             $update = [];
             foreach ($input as $fieldName => $value) {
-                $update[$fieldAccessor->normaliseField($obj, $fieldName)] = $value;
+                $info = $schema->mapFieldByClassName($dataClass, $fieldName);
+                Schema::invariant(
+                    $info,
+                    'Count not map field %s on %s in resolver for %s',
+                    $fieldName,
+                    $dataClass,
+                    __CLASS__
+                );
+                list ($type, $property) = $info;
+                $update[$property] = $value;
             }
 
             $obj->update($update);
@@ -111,27 +128,29 @@ class UpdateCreator implements OperationCreator, InputTypeProvider
     }
 
     /**
-     * @param SchemaModelInterface $model
-     * @param string $typeName
+     * @param ModelType $modelType
      * @param array $config
      * @return array
      * @throws SchemaBuilderException
      */
-    public function provideInputTypes(SchemaModelInterface $model, string $typeName, array $config = []): array
+    public function provideInputTypes(ModelType $modelType, array $config = []): array
     {
-        $dataObject = Injector::inst()->get($model->getSourceClass());
-        $includedFields = $this->reconcileFields($config, $dataObject, $this->getFieldAccessor());
+        $includedFields = $this->reconcileFields($config, $modelType);
 
         $fieldMap = [];
         foreach ($includedFields as $fieldName) {
-            $type = $model->getField($fieldName)->getType();
+            $fieldObj = $modelType->getFieldByName($fieldName);
+            if (!$fieldObj) {
+                continue;
+            }
+            $type = $fieldObj->getType();
             // No nested input types... yet
             if ($type && Schema::isInternalType($type)) {
                 $fieldMap[$fieldName] = $type;
             }
         }
         $inputType = InputType::create(
-            self::inputTypeName($typeName),
+            self::inputTypeName($modelType->getName()),
             [
                 'fields' => $fieldMap
             ]

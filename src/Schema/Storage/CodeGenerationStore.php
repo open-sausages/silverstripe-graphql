@@ -362,7 +362,10 @@ class CodeGenerationStore implements SchemaStorageInterface
     {
         $typeMapping = [];
         foreach ($schema->getModels() as $modelType) {
-            $typeMapping[$modelType->getModel()->getSourceClass()] = $modelType->getName();
+            $class = $modelType->getModel()->getSourceClass();
+            if (!isset($typeMapping[$class])) {
+                $typeMapping[$class] = $modelType->getName();
+            }
         }
 
         return $typeMapping;

@@ -13,12 +13,9 @@ use SilverStripe\GraphQL\Schema\Interfaces\DefaultFieldsProvider;
 use SilverStripe\GraphQL\Schema\Interfaces\ExtraTypeProvider;
 use SilverStripe\GraphQL\Schema\Interfaces\InputTypeProvider;
 use SilverStripe\GraphQL\Schema\Interfaces\ModelBlacklist;
-use SilverStripe\GraphQL\Schema\Interfaces\ModelConfigurationProvider;
 use SilverStripe\GraphQL\Schema\Interfaces\OperationCreator;
 use SilverStripe\GraphQL\Schema\Interfaces\OperationProvider;
 use SilverStripe\GraphQL\Schema\Interfaces\SchemaModelInterface;
-use SilverStripe\GraphQL\Schema\Interfaces\SettingsProvider;
-use SilverStripe\GraphQL\Schema\Registry\SchemaModelCreatorRegistry;
 use SilverStripe\GraphQL\Schema\Schema;
 use SilverStripe\ORM\ArrayLib;
 
@@ -399,11 +396,7 @@ class ModelType extends Type implements ExtraTypeProvider
             if (!$operationCreator instanceof InputTypeProvider) {
                 continue;
             }
-            $types = $operationCreator->provideInputTypes(
-                $this->getModel(),
-                $this->getName(),
-                $config
-            );
+            $types = $operationCreator->provideInputTypes($this, $config);
             foreach ($types as $type) {
                 Schema::invariant(
                     $type instanceof InputType,

@@ -9,8 +9,15 @@ use SilverStripe\Versioned\Versioned;
 
 class FakeProduct extends DataObject implements TestOnly
 {
+    public static $canCreate = true;
+    public static $canEdit = true;
+    public static $canDelete = true;
+    public static $canView = true;
+
+
     private static $db = [
         'Title' => 'Varchar',
+        'Price' => 'Int',
     ];
 
     private static $has_one = [
@@ -32,4 +39,24 @@ class FakeProduct extends DataObject implements TestOnly
     private static $owns = [
         'Reviews',
     ];
+
+    public function canCreate($member = null, $context = [])
+    {
+        return static::$canCreate;
+    }
+
+    public function canEdit($member = null)
+    {
+        return static::$canEdit;
+    }
+
+    public function canDelete($member = null)
+    {
+        return static::$canDelete;
+    }
+
+    public function canView($member = null)
+    {
+        return static::$canView;
+    }
 }
